@@ -1,0 +1,24 @@
+#!/bin/sh
+# post-commit/post-receive hook to backup git repository into gdrive
+BASE=`pwd`
+PRJ=`basename $BASE`
+BARE=`git rev-parse --is-bare-repository`
+OPTIONS="-ignore-checksum -ignore-conflict -ignore-name-clashes -no-clobber -no-prompt -quiet"
+
+if [ $BARE = "true" ]; then
+	drive trash -quiet
+	drive push $OPTIONS
+else
+	if [ ! -d .git ]; then
+		echo "Not a git repository"
+		exit 1
+	fi
+	cp -fr .git $PRJ.git
+	cd $PRJ.git && git config --bool core.bare true && cd ..
+	[ ! -d $HOME/Sync/Codes ] && mkdir -p $HOME/Sync/Codes
+	cd $HOME/Sync/Codes/
+	tar -Jcf - -C $BASE $PRJ.git | drive push $OPTIONS $PRJ.git.tar.xz
+	cd -
+	rm -fr $PRJ.git
+fi
+exit 0

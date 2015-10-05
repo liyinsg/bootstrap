@@ -1,0 +1,54 @@
+#!/usr/bin/python
+__author__ = "Li Yin (liyin@live.com)"
+__copyright__ = "Copyright (c) 2014-2015 Li Yin"
+__license__ = "New-style BSD"
+
+import re
+import socket
+import urllib2
+
+def get_ip(url):
+	ip = urllib2.urlopen(url).read()
+	m = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', ip)
+	if m:
+		return m.group(0)
+	else:
+		return None
+
+def fetch_ip():
+	urls = (
+		"http://checkip.dyn.com/",
+		"https://icanhazip.com/",
+		"http://www.whatsmyip.net/",
+	)
+	for url in urls:
+		ip = get_ip(url)
+		if ip:
+			return ip
+
+def update_host(name, password, host, ip):
+	url = 'https://dynamicdns.park-your-domain.com/update?host=%s&domain=%s&password=%s&ip=%s' % (host, name, password, ip)
+	urllib2.urlopen(url).read()
+	# TODO: print failure reason
+
+def update_records():
+	domains = [
+		{
+			'name' : "yourdomainname.com",
+			'password' : "***************************",
+			'hosts' : ('@', 'www'),
+		},
+	]
+
+	for domain in domains:
+		ip = fetch_ip()
+		if ip == socket.gethostbyname(domain['name']):
+			print domain['name'] + " up to date"
+			continue
+		for host in domain["hosts"]:
+			update_host(domain['name'], domain['password'], host, ip)
+
+	print "All updated"
+
+if __name__ == '__main__':
+	update_records()

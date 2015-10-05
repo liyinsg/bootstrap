@@ -1,0 +1,29 @@
+" non-plugin stuffs
+set ruler cursorline colorcolumn=80
+syntax enable
+syntax on
+let mapleader=";"
+nmap \ <leader>x
+
+set nu spell mouse=a showcmd nowrap showmatch incsearch wildmenu
+set history=1000
+set wildignore=*.bak,*.pyc,*.a,*.lib,*.so,*.o
+set nobackup noswapfile
+set autoread
+
+" default tab setting
+set noexpandtab shiftwidth=4 tabstop=4 softtabstop=4
+set list listchars=tab:»·,trail:·
+set foldmethod=syntax foldlevel=99
+if has ('unnamedplus')
+  set clipboard=unnamedplus
+else
+  set clipboard=unnamed
+endif
+" Remove tailing spaces
+au FileType c,cpp,java,php,ts,py autocmd BufWritePre <buffer> :%s/\s\+$//e
+" Use tab instead of space in Python
+au FileType python setlocal noexpandtab shiftwidth=4 tabstop=4 softtabstop=4
+" auto close netrw
+au FileType netrw setl bufhidden=delete
+au FileType typescript setlocal expandtab shiftwidth=2 tabstop=2 softtabstop=2

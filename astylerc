@@ -1,0 +1,12 @@
+--style=kr
+indent=force-tab-x=4
+attach-namespaces
+attach-classes
+attach-inlines
+attach-extern-c
+indent-col1-comments
+unpad-paren
+align-pointer=name
+align-reference=name
+remove-brackets
+mode=c

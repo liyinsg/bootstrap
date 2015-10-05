@@ -1,0 +1,18 @@
+set surround
+
+nnoremap <Tab> :action VimMotionNextTab<CR>
+nnoremap <S-Tab> :action GotoRelated<CR>
+nnoremap [c :action VcsShowPrevChangeMarker<CR>
+nnoremap ]c :action VcsShowNextChangeMarker<CR>
+nnoremap ]e :action GotoNextError<CR>
+nnoremap [e :action GotoPreviousError<CR>
+nnoremap <leader>q :action CloseEditor<CR>
+nnoremap <leader>n :action NewFile<CR>
+nnoremap <leader>v :action ToggleDistractionFreeMode<CR>
+nnoremap <leader>p :action SearchEverywhere<CR>
+nnoremap <leader>i :action InspectCode<CR>
+nnoremap <leader>f :action ShowUsages<CR>
+nnoremap <leader>s :action AceAction<CR>
+nnoremap <C-\>g :action GotoDeclaration<CR>
+nnoremap <C-\>s :action GotoImplementation<CR>
+nnoremap <C-n> :action RenameElement<CR>

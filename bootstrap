@@ -1,0 +1,1024 @@
+#!/bin/bash
+# Constant Values
+export XZ_OPT="--threads=0"
+NEED_FORCE_UPDATE=false
+OSX=false
+[ `uname` == "Darwin" ] && OSX=true
+GITRAW=https://raw.githubusercontent.com
+MYGITRAW=$GITRAW/liyinsg/bootstrap/master
+SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+print_title()
+{
+	echo -e "`tput bold`$@`tput sgr0`"
+}
+
+in_cfg()
+{
+	[ ! -f $1 ] && return 0
+	grep "$2" "$1" &> /dev/null
+	return $?
+}
+
+is_package_exist()
+{
+	if $OSX; then
+		brew list $1 &> /dev/null
+	else
+		dpkg --status $1 2>/dev/null | grep -q ^"Status: install ok installed"$
+	fi
+	return $?
+}
+
+install_package()
+{
+	local package_name=$1
+	is_package_exist $package_name && return 0
+
+	print_title "Installing $package_name..."
+	if $OSX; then
+		brew install $@
+	else
+		local url_base=$2
+		local file_name=$3
+		cd /tmp
+		rm -f $file_name*
+		wget $url_base/$file_name
+		sudo dpkg -i $file_name
+		rm -f $file_name
+	fi
+	return 1
+}
+
+uninstall_packages()
+{
+	REMOVE_LIST+="brltty popularity-contest example-content avahi-autoipd "
+	REMOVE_LIST+="avahi-daemon xbrlapi biosdevname xul-ext-ubufox firefox "
+	REMOVE_LIST+="unity-webapps-common simple-scan totem-common onboard "
+	REMOVE_LIST+="checkbox-converged python3-checkbox-support yelp "
+	REMOVE_LIST+="xdiagnose snapd snapd-login-service whoopsie "
+	REMOVE_LIST+="aisleriot gnome-mahjongg gnome-mines gnome-sudoku "
+	REMOVE_LIST+="ubuntu-software gnome-software-common ayatana "
+	REMOVE_LIST+="shotwell-common thunderbird rhythmbox deja-dup xterm "
+	REMOVE_LIST+="unity8 ubuntu-system-settings ubuntu-web-launchers "
+	REMOVE_LIST+="ibus ibus-gtk ibus-gtk3 "
+	print_title "Check for uninstall:"
+	local list=""
+	for pkg in $(echo $REMOVE_LIST); do
+		if is_package_exist $pkg; then
+			list="$list $pkg"
+		fi
+		echo -n .
+	done
+	echo ""
+	if [ ! -z "$list" ]; then
+		list="$list $ALWAYS_REMOVE"
+		print_title "Uninstall packages: $list"
+		sudo apt-get remove --purge --show-progress -y $list
+		sudo apt-get autoremove --purge
+		dpkg --list | grep "^rc"
+		[ $? -eq 0 ] && dpkg --list | grep "^rc" | cut -d " " -f 3 | xargs sudo dpkg --purge
+		sudo apt-get dist-upgrade
+	fi
+}
+
+install_packages()
+{
+	if [ "$1" == "server" ]; then
+		INSTALL_LIST="git openssh-server exfat-fuse exfat-utils "
+	else
+		INSTALL_LIST="byobu gitk vim-gtk3 sshfs ccache p7zip-full unifdef "
+		INSTALL_LIST+="python3-dev cscope exuberant-ctags silversearcher-ag "
+		INSTALL_LIST+="build-essential astyle aufs-tools clang "
+		INSTALL_LIST+="cmake manpages-dev manpages-posix-dev ttf-wqy-microhei "
+		INSTALL_LIST+="fish goldendict vlc curl xclip valgrind kcachegrind "
+	fi
+	INSTALL_LIST+="pv htop iftop tig libc6-i386 libncurses5-dev lib32z1 lbzip2 "
+	INSTALL_LIST+="libncurses5:i386 "
+
+	local list=""
+	print_title "Check for install:"
+	for pkg in $(echo $INSTALL_LIST); do
+		if ! is_package_exist $pkg; then
+			list="$list $pkg"
+		fi
+		echo -n .
+	done
+	echo ""
+	if [ ! -z "$list" ]; then
+		sudo apt-get update
+		print_title "Install packages: $list"
+		sudo apt-get install --show-progress -y $list
+	fi
+}
+
+install_power_line_fonts()
+{
+	local PLPATH=$HOME/powerline_fonts
+	if $OSX; then
+		local DSTDIR=/Library/Fonts
+		[ -f "$DSTDIR/Menlo for Powerline.ttf" ] && return
+		print_title "Installing power line fonts..."
+		git clone https://github.com/abertsch/Menlo-for-Powerline $PLPATH
+		sudo cp $PLPATH/*.ttf $DSTDIR
+		rm -fr $PLPATH
+	else
+		local DSTDIR=/usr/share/fonts/truetype/ubuntu-mono-powerline
+		[ -d $DSTDIR ] && return
+		git clone https://github.com/powerline/fonts $PLPATH
+		sudo mkdir $DSTDIR
+		local FONTSRC="$PLPATH/UbuntuMono/Ubuntu Mono derivative Powerline"
+		local FONTDST="$DSTDIR/ubuntu-mono-powerline"
+		sudo cp "$FONTSRC.ttf" $FONTDST.ttf
+		sudo cp "$FONTSRC Bold.ttf" $FONTDST-bold.ttf
+		sudo cp "$FONTSRC Italic.ttf" $FONTDST-italic.ttf
+		sudo cp "$FONTSRC Bold Italic.ttf" $FONTDST-bold-italic.ttf
+		sudo fc-cache -f -v
+	fi
+	rm -rf $PLPATH
+}
+
+fix_gruvbox_color()
+{
+	local CFG_FILE=$1
+	if $OSX; then
+		local GRUVBOX_COLOR=$2/plugged/gruvbox/gruvbox_256palette_osx.sh
+	else
+		local GRUVBOX_COLOR=$2/plugged/gruvbox/gruvbox_256palette.sh
+	fi
+	[ ! -f $GRUVBOX_COLOR ] && /bin/bash vim +PlugUpdate +PlugUpgrade +qall
+	grep '\"screen' $GRUVBOX_COLOR &> /dev/null
+	[ $? -eq 0 ] && curl -fsSL $MYGITRAW/gruvbox.patch | git -C $2/plugged/gruvbox apply
+	! in_cfg $CFG_FILE gruvbox_256palette && cat << EOT >> "$CFG_FILE"
+
+# Correct gruvbox color
+[ -f $GRUVBOX_COLOR ] && source "$GRUVBOX_COLOR"
+EOT
+}
+
+install_vim()
+{
+	local VIMDIR=/usr/local/etc/vim
+	[ ! -d $VIMDIR ] && mkdir -p $VIMDIR
+	cd $VIMDIR
+	curl -fsSL $MYGITRAW/vimrc.base -o vimrc.base
+	curl -fsSL $MYGITRAW/vimrc.local -o vimrc.local
+	curl -fsSL $MYGITRAW/vimrc.idea -o vimrc.idea
+	curl -fsSL $MYGITRAW/ycm_extra_conf.py -o ycm_extra_conf.py
+	local YCM_GEN="/usr/local/etc/vim/plugged/YCM-Generator/config_gen.py"
+	if [ -f $YCM_GEN ]; then
+		local EXE="/usr/local/bin/ycm_gen"
+		[ -L $EXE ] && rm $EXE
+		if [ ! -f $EXE ]; then
+			cat << EOT >> "$EXE"
+#!/bin/sh
+$YCM_GEN -v -c /usr/bin/clang $@
+EOT
+			chmod 755 $EXE
+		fi
+	fi
+
+	local CFG_FILE=/etc/vim/vimrc
+	if $OSX; then
+		[ ! -f $CFG_FILE ] && CFG_FILE=$HOME/.vimrc
+		[ ! -f $CFG_FILE ] && touch $CFG_FILE
+	#else
+		#sudo sed -i 's/gedit.desktop/gvim.desktop/g' /etc/gnome/defaults.list
+	fi
+
+	! in_cfg $CFG_FILE /usr/local && sudo tee -a $CFG_FILE > /dev/null <<EOT
+
+" Source a local configuration file if available
+if filereadable("/usr/local/etc/vim/vimrc.local")
+  source /usr/local/etc/vim/vimrc.base
+  source /usr/local/etc/vim/vimrc.local
+endif
+EOT
+
+	CFG_FILE=$HOME/.ideavimrc
+	! in_cfg $CFG_FILE vimrc.base && cat << EOT > $CFG_FILE
+if filereadable("/usr/local/etc/vim/vimrc.base")
+  source /usr/local/etc/vim/vimrc.base
+  source /usr/local/etc/vim/vimrc.idea
+endif
+EOT
+	fix_gruvbox_color $HOME/.bashrc $VIMDIR
+	fix_gruvbox_color $HOME/.zshrc $VIMDIR
+}
+
+generate_ssh_key()
+{
+	[ -f $HOME/.ssh/id_rsa ] && return
+	mkdir $HOME/.ssh
+	chmod 700 $HOME/.ssh
+	cd $HOME/.ssh
+	ssh-keygen -t rsa -b 4096 -C "liyin@live.com" -N "" -f $HOME/.ssh/id_rsa
+	cat $HOME/.ssh/id_rsa.pub
+}
+
+set_nautilus_zoom_level()
+{
+	local GTERM=/org/gnome/nautilus
+	dconf write $GTERM/icon-view/default-zoom-level "'larger'"
+	dconf write $GTERM/list-view/default-zoom-level "'standard'"
+}
+
+customize_gnome_terminal()
+{
+	local RESOLUTION=`xdpyinfo | grep dimensions | sed -r 's/^[^0-9]*([0-9]+x[0-9]+).*$/\1/'`
+	local GTERM=/org/gnome/terminal/legacy
+	dconf write $GTERM/default-show-menubar false
+	dconf write $GTERM/keybindings/reset-and-clear "'<Primary><Shift>l'"
+	local PROFILE=$GTERM/profiles:
+	local ENTRY=`dconf read ${PROFILE}/default`
+	if [ -z "$ENTRY" ]; then
+		ENTRY=`dconf list ${PROFILE}/ | grep '^:' | head -n1 | tr -d :/`
+		if [ -z "$ENTRY" ]; then
+			local TEXT="Please create a profile for gnome terminal first and rerun this script, Edit->Profile Preferences->Change the profile name"
+			notify-send 'Bootstrap' $TEXT
+			echo -e "\e[31m$TEXT\e[0m"
+			return
+		fi
+		ENTRY=":"$ENTRY
+	fi
+	PROFILE=$PROFILE/$ENTRY
+	dconf write ${PROFILE}/use-system-font false
+	dconf write ${PROFILE}/use-theme-transparency false
+
+	local FONT_SIZE="12"
+	case $RESOLUTION in
+		"2560x1440") FONT_SIZE=15;;
+	esac
+	dconf write ${PROFILE}/font "'Ubuntu Mono derivative Powerline ${FONT_SIZE}'"
+	dconf write ${PROFILE}/use-theme-colors false
+	dconf write ${PROFILE}/use-custom-command true
+	dconf write ${PROFILE}/custom-command "'/usr/bin/byobu-tmux new-session'"
+	dconf write ${PROFILE}/foreground-color "'rgb(255,255,255)'"
+	dconf write ${PROFILE}/background-color "'rgb(29,32,33)'"
+	dconf write ${PROFILE}/palette "['rgb(29,32,33)', 'rgb(204,36,29)', 'rgb(152,151,26)', 'rgb(215,153,33)', 'rgb(69,133,136)', 'rgb(177,98,134)', 'rgb(104,157,106)', 'rgb(168,153,132)', 'rgb(146,131,116)', 'rgb(251,73,52)', 'rgb(184,187,38)', 'rgb(250,189,47)', 'rgb(131,165,152)', 'rgb(211,134,155)', 'rgb(142,192,124)', 'rgb(235,219,178)']"
+	dconf write ${PROFILE}/scrollbar-policy "'never'"
+	sed -i 's/color_prompt" = yes/SSH_CONNECTION"/g' ~/.bashrc
+	sed -i 's/\\u@\\h:\\w/\\[\\033[01;34m\\]\\w\\[\\033[00m\\]/g' ~/.bashrc
+}
+
+config_git()
+{
+	git config --global user.name "Li Yin"
+	git config --global user.email liyin@live.com
+	git config --global core.autocrlf input
+	git config --global push.default simple
+	git config --global remote.origin.prune true
+	if ! in_cfg $HOME/.gitconfig bc3; then
+		git config --global diff.tool bc3
+		git config --global merge.tool bc3
+		git config --global difftool.bc3 trustExitCode true
+		git config --global mergetool.bc3 trustExitCode true
+	fi
+	git config --global alias.vimdiff "difftool --tool=vimdiff --no-prompt"
+	git config --global alias.co "checkout"
+	git config --global alias.lg "log --graph --pretty=format:'%C(bold red)%h%Creset \
+-%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold green)<%an>%Creset' \
+--abbrev-commit --date=relative"
+	git config --global alias.fr "!git reset --hard HEAD && git clean -ffdx"
+	git config --global core.excludesfile ~/.gitignore
+	cat << EOT > $HOME/.gitignore
+.svn/
+cscope.db
+cscope.in.out
+cscope.out
+cscope.po.out
+tags
+Thumbs.db
+Desktop.ini
+.DS_Store
+EOT
+}
+
+setup_ccache()
+{
+	local CFG_FILE=$HOME/.profile
+
+	print_title "Setup ccache..."
+	ccache -F 0 && ccache -M 0
+	if $OSX; then
+		EXEPATH=/usr/local/Cellar/ccache/3.2.3/libexec
+	else
+		EXEPATH=/usr/lib/ccache
+	fi
+	! in_cfg $CFG_FILE ccache && cat << EOT >> $CFG_FILE
+
+# prefer to use ccache
+[ -d $EXEPATH ] && PATH="$EXEPATH:\$PATH"
+EOT
+}
+
+export_android_home()
+{
+	local CFG_FILE=$1
+	ASDK=$2
+	! in_cfg $CFG_FILE ANDROID_HOME && cat << EOT >> $CFG_FILE
+
+export ANDROID_HOME=$ASDK
+EOT
+}
+
+setup_android_sdk()
+{
+	local CFG_FILE=$HOME/.profile
+	local ASDK=/usr/local/opt/android-sdk
+	if $OSX; then
+		[ ! -d $ASDK ] && install_package android-sdk
+	else
+		[ ! -d /usr/local/opt ] && mkdir -p /usr/local/opt
+		[ ! -d $ASDK ] && wget -qO- \
+			http://dl.google.com/android/android-sdk_r24.4.1-linux.tgz | tar \
+			--transform 's/^android-sdk-linux/android-sdk/' -xvz -C /usr/local/opt/
+		[ ! -d $ASDK/platform-tools ] && echo "y" | $ASDK/tools/android \
+			update sdk --no-ui --filter 1,2
+	fi
+	! in_cfg $CFG_FILE android-sdk && cat << EOT >> $CFG_FILE
+
+# path to android SDK
+[ -d $ASDK ] && PATH="$ASDK/platform-tools:\$PATH"
+EOT
+	[ ! -d $ASDK ] && return
+	export_android_home $HOME/.profile $ASDK
+}
+
+setup_jdk()
+{
+	local CFG_FILE=$1
+	local JHOME=""
+	[ ! -f $CFG_FILE ] && return
+	if $OSX; then
+		JHOME="$(/usr/libexec/java_home)"
+	else
+		JHOME=/usr/lib/jvm/java-9-oracle
+		[ ! -d $JHOME ] && JHOME=/usr/lib/jvm/java-8-oracle
+		[ ! -d $JHOME ] && JHOME=/usr/lib/jvm/java-7-oracle
+		[ ! -d $JHOME ] && JHOME=/usr/lib/jvm/java-6-oracle
+		[ ! -d $JHOME ] && JHOME=/usr/lib/jvm/java-7-openjdk-amd64
+	fi
+	[ ! -d $JHOME ] && return
+	! in_cfg $CFG_FILE $JHOME && cat << EOT >> $CFG_FILE
+
+export JAVA_HOME=$JHOME
+EOT
+}
+
+add_to_group()
+{
+	local GROUP=$1
+	groups $USER | grep &>/dev/null "\b${GROUP}\b" && return
+	sudo adduser $USER $GROUP
+}
+
+add_android_udev_rules()
+{
+	local FILENAME="51-android.rules"
+	local BASEURL=$GITRAW/M0Rf30/android-udev-rules/master
+	local DIR=/etc/udev/rules.d
+	[ -f $DIR/$FILENAME ] && in_cfg $DIR/$FILENAME Qualcomm && return
+	cd $DIR
+	sudo curl -fsSL $BASEURL/$FILENAME -o $FILENAME
+	sudo chmod a+r $FILENAME
+	sudo sed -i "s/GROUP=\"adbusers/OWNER=\"`whoami`/g" $FILENAME
+}
+
+config_bcompare()
+{
+	local BCPATH=""
+	if $OSX; then
+		BCPATH="/Applications/Beyond Compare.app/Contents/MacOS"
+	else
+		BCPATH=/usr/lib/beyondcompare
+	fi
+	grep 'keexjEP3t4Mue23hrnuPtY4TdcsqNiJL-' "$BCPATH/BCompare" &> /dev/null
+	[ $? -ne 0 ] && return
+	local STR='s/keexjEP3t4Mue23hrnuPtY4TdcsqNiJL-5174TsUdLmJSIXKfG2NGPwBL6vnRPddT7tH29qpkneX63DO9ECSPE9rzY1zhThHERg8lHM9IBFT+rVuiY823aQJuqzxCKIE1bcDqM4wgW01FH6oCBP1G4ub01xmb4BGSUG6ZrjxWHJyNLyIlGvOhoY2HAYzEtzYGwxFZn2JZ66o4RONkXjX0DF9EzsdUef3UAS+JQ+fCYReLawdjEe6tXCv88GKaaPKWxCeaUL9PejICQgRQOLGOZtZQkLgAelrOtehxz5ANOOqCaJgy2mJLQVLM5SJ9Dli909c5ybvEhVmIC0dc9dWH+/N9KmiLVlKMU7RJqnE+WXEEPI1SgglmfmLc1yVH7dqBb9ehOoKG9UE+HAE1YvH1XX2XVGeEqYUY-Tsk7YBTz0WpSpoYyPgx6Iki5KLtQ5G-aKP9eysnkuOAkrvHU8bLbGtZteGwJarev03PhfCioJL4OSqsmQGEvDbHFEbNl1qJtdwEriR+VNZts9vNNLk7UGfeNwIiqpxjk4Mn09nmSd8FhM4ifvcaIbNCRoMPGl6KU12iseSe+w+1kFsLhX+OhQM8WXcWV10cGqBzQE9OqOLUcg9n0krrR3KrohstS9smTwEx9olyLYppvC0p5i7dAx2deWvM1ZxKNs0BvcXGukR+/'
+	if $OSX; then
+		LC_CTYPE=C LANG=C sudo sed -i '' "${STR}" "$BCPATH/BCompare"
+	else
+		sudo sed -i "${STR}" "$BCPATH/BCompare"
+	fi
+}
+
+install_docker()
+{
+	local KERNEL_VERSION=`uname -r | sed -r 's/(.*)-[a-z]+/\1/g'`
+	local KERNEL_EXTRA=linux-image-extra-$KERNEL_VERSION-generic
+	if ! is_package_exist $KERNEL_EXTRA; then
+		# Use AUFS
+		sudo apt-get install -y $KERNEL_EXTRA
+	fi
+	if [ `lsb_release -sr` == "17.04" ]; then
+		install_package docker-engine \
+			https://apt.dockerproject.org/repo/pool/main/d/docker-engine \
+			docker-engine_17.04.0~ce-0~ubuntu-yakkety_amd64.deb
+	else
+		is_package_exist docker-engine && return
+		curl -fsSL https://get.docker.com/ | sh
+	fi
+
+	add_to_group docker
+}
+
+install_bcompare()
+{
+	local URL='http://www.scootersoftware.com/download.php?zz=dl4&platform=linux'
+	local BCOMPARE_VERSION=`curl -s $URL | sed -n -e 's/^.*\/bcompare-\(.*\)_amd64.deb.*/\1/p'`
+	install_package bcompare http://www.scootersoftware.com \
+		bcompare-${BCOMPARE_VERSION}_amd64.deb && return
+	sudo apt-get -f -y install
+	NEED_FORCE_UPDATE=true
+	config_bcompare
+}
+
+config_wireshark()
+{
+	! is_package_exist wireshark && return
+	add_to_group wireshark
+}
+
+config_virtualbox()
+{
+	! is_package_exist virtualbox && return
+	add_to_group vboxusers
+}
+
+add_local_bins()
+{
+	curl -fsSL $MYGITRAW/scripts/gr -o /usr/local/bin/gr
+	chmod a+x /usr/local/bin/gr
+
+	curl -fsSL $MYGITRAW/scripts/tagsdb -o /usr/local/bin/tagsdb
+	chmod a+x /usr/local/bin/tagsdb
+
+	if ! $OSX; then
+		# Patched version which changed upstream commit 7382ba8
+		# to fix italic support for screen-256color
+		if [ ! -f /usr/local/bin/tmux ]; then
+			curl -fsSL $MYGITRAW/bin/tmux -o /usr/local/bin/tmux
+			chmod a+x /usr/local/bin/tmux
+		fi
+
+		curl -fsSL $MYGITRAW/scripts/git-gdrive-hook -o \
+			/usr/local/bin/git-gdrive-hook
+		chmod a+x /usr/local/bin/git-gdrive-hook
+	fi
+}
+
+add_jgrep_cgrep()
+{
+	cat << EOT >> $1
+
+# Helper functions from AOSP
+function jgrep()
+{
+    find . -name .repo -prune -o -name .git -prune -o -name out -prune -o \
+-type f -name "*\.java" -print0 | xargs -0 ag "\$@"
+}
+
+function cgrep()
+{
+    find . -name .repo -prune -o -name .git -prune -o -name out -prune -o \
+-type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.h' \
+-o -name '*.hpp' \) -print0 | xargs -0 ag "\$@"
+}
+EOT
+}
+
+customize_unity()
+{
+	dconf write /org/compiz/integrated/show-hud '[""]'
+	dconf write /com/canonical/unity/integrated-menus true
+	dconf write /com/canonical/unity/lenses/remote-content-search "'none'"
+}
+
+update_sogou_config()
+{
+	if [ `lsb_release -sr` == "17.10" ]; then
+		local AUTOSTART=/etc/xdg/autostart/fcitx-ui-sogou-qimpanel.desktop
+		in_cfg $AUTOSTART sogou-qimpanel && sudo sed -i 's/sogou-qimpanel/fcitx/g' $AUTOSTART
+	fi
+	local CFG_FILE=$HOME/.config/SogouPY/sogouEnv.ini
+	sed -i 's/sogoupinyin:False/sogoupinyin:True/g' $HOME/.config/fcitx/profile
+	[ ! -d $HOME/.config/SogouPY ] && mkdir $HOME/.config/SogouPY
+	cat << EOT > $HOME/.config/SogouPY/MoHuYin.ini
+[Fuzzy]
+zh=z
+ch=c
+sh=s
+h=f
+EOT
+	in_cfg $CFG_FILE SwitchCE_key && return
+	cat << EOT >> $CFG_FILE
+
+[KEY]
+SwitchCE_key=Nothing
+SwichSogouIME=false
+Switch2sogou=
+ChttransFlag=false
+EOT
+	# Restart sogou
+	kill `ps -ef|grep fcitx|grep -v grep |awk '{print $2}'`
+	sleep 1
+	fcitx -r --enable sogou-qimpanel 2>&1 > /dev/null
+	sogou-qimpanel 2>&1 > /dev/null
+}
+
+install_sogou()
+{
+	local BASEURL=http://cdn2.ime.sogou.com/dl/index/1491565850
+	local FILENAME=sogoupinyin_2.1.0.0086_amd64.deb
+	install_package sogoupinyin $BASEURL $FILENAME && return
+	NEED_FORCE_UPDATE=true
+}
+
+setup_pager()
+{
+	local CFG_FILE=$1
+	! in_cfg $CFG_FILE LESS && cat << EOT >> $CFG_FILE
+
+# -F: quit-if-one-screen -R: raw -X: no init -S: chop long string
+export LESS="-FRXS"
+EOT
+
+	in_cfg $CFG_FILE MANPAGER && return
+	if $OSX; then
+		cat << EOT >> $CFG_FILE
+
+export MANPAGER="col -b | vi -MR -c 'set ft=man ts=8 nolist nonu cc=0' -"
+EOT
+	else
+		cat << EOT >> $CFG_FILE
+
+export MANPAGER="/bin/sh -c \"col -b | vi -MR -c 'set ft=man ts=9 nolist nonu cc=0' -\""
+EOT
+	fi
+}
+
+remove_flow_control()
+{
+	! in_cfg $1 ixon && cat << EOT >> $1
+
+# Disable flow control
+stty -ixon -ixoff
+EOT
+}
+
+source_autojump()
+{
+	local CFG_FILE=$HOME/.${1}rc
+	local SOURCE=/usr/share/autojump/autojump.${1}
+	[ ! -f $SOURCE ] && SOURCE=/usr/local/share/autojump/autojump.${1}
+	[ ! -f $SOURCE ] && return
+	! in_cfg $CFG_FILE autojump && cat << EOT >> $CFG_FILE
+
+# add autojump
+[ -f $SOURCE ] && source $SOURCE
+EOT
+}
+
+config_bash()
+{
+	local CFG_FILE=$HOME/.bashrc
+	remove_flow_control $CFG_FILE
+	! in_cfg $CFG_FILE jgrep && add_jgrep_cgrep $CFG_FILE
+	source_autojump bash
+}
+
+install_oh_my_zsh()
+{
+	local CFG_FILE=$1
+	local OMZ=$GITRAW/robbyrussell/oh-my-zsh/master/tools/install.sh
+	[ ! -d "$HOME/.oh-my-zsh" ] && sh -c "$(curl -fsSL $OMZ)"
+	local STR="s/(git)/(autojump command-not-found tmux)/g"
+	if $OSX; then
+		sed -i '' "${STR}" $CFG_FILE
+	else
+		sed -i "${STR}" $CFG_FILE
+	fi
+}
+
+install_zsh()
+{
+	# Bash shares history across multiple terminals
+	local ZSHPATH="/usr/local/bin/zsh"
+	if $OSX; then
+		[ ! -x $ZSHPATH ] && install_package zsh
+		! in_cfg /etc/shells $ZSHPATH && echo $ZSHPATH | sudo tee -a /etc/shells
+		finger $USER | grep zsh &> /dev/null
+		[ $? -ne 0 ] && chsh -s /usr/local/bin/zsh
+	else
+		! is_package_exist zsh && sudo apt-get install zsh
+		chsh -s /usr/bin/zsh
+	fi
+	local CFG_FILE=$HOME/.zshrc
+
+	curl -fsSL $MYGITRAW/zshrc -o $HOME/.zshrc
+	if ! $OSX; then
+		echo "alias ls='ls --color=auto'" >> $HOME/.zshrc
+	fi
+	#install_oh_my_zsh $CFG_FILE
+	source_autojump zsh
+	! in_cfg $CFG_FILE jgrep && add_jgrep_cgrep $CFG_FILE
+	if $OSX; then
+		! in_cfg $CFG_FILE .profile && cat << EOT >> $CFG_FILE
+
+[ -f $HOME/.profile ] && source $HOME/.profile
+EOT
+	fi
+}
+
+install_fasd()
+{
+	curl -fsSL $GITRAW/clvv/fasd/master/fasd -o /usr/local/bin/fasd
+	chmod 755 /usr/local/bin/fasd
+	sudo curl -fsSL $GITRAW/clvv/fasd/master/fasd.1 -o /usr/share/man/man1/fasd.1
+}
+
+config_fzf()
+{
+	local CFG_FILE=$HOME/.profile
+	local FZF=/usr/local/etc/vim/plugged/fzf
+	local EXEPATH=$FZF/bin
+	local SHELLPATH=$FZF/shell
+
+	[ ! -d $SHELLPATH ] && return
+
+	! in_cfg $CFG_FILE "fzf/bin" && cat << EOT >> $CFG_FILE
+
+# fzf
+
+[ -d $EXEPATH ] && PATH="$EXEPATH:\$PATH"
+EOT
+
+	CFG_FILE=$HOME/.bashrc
+	! in_cfg $CFG_FILE "fzf/shell" && cat << EOT >> $CFG_FILE
+[[ $- == *i* ]] && source "$SHELLPATH/completion.bash" 2> /dev/null
+EOT
+
+	CFG_FILE=$HOME/.zshrc
+	! in_cfg $CFG_FILE "fzf/shell" && cat << EOT >> $CFG_FILE
+[[ $- == *i* ]] && source "$SHELLPATH/completion.zsh" 2> /dev/null
+EOT
+	$OSX && ln -sf /usr/local/etc/vim/plugged/fzf/bin/fzf /usr/local/bin/fzf
+	$OSX && ln -sf /usr/local/etc/vim/plugged/fzf/bin/fzf-tmux /usr/local/bin/fzf-tmux
+}
+
+config_fish()
+{
+	local FISHPATH="/usr/local/bin/fish"
+	local FISHCFGDIR="$HOME/.config/fish"
+	if $OSX; then
+		! in_cfg /etc/shells $FISHPATH && echo $FISHPATH | sudo tee -a /etc/shells
+		finger $USER | grep fish &> /dev/null
+		[ $? -ne 0 ] && chsh -s /usr/local/bin/fish
+	else
+		[ ! -d $FISHCFGDIR ] && chsh -s /usr/bin/fish
+	fi
+	[ ! -d $FISHCFGDIR ] && mkdir $FISHCFGDIR
+	curl -fsSL $MYGITRAW/config.fish -o $FISHCFGDIR/config.fish
+	[ ! -d $HOME/.local/share/fish/generated_completions ] && fish -c fish_update_completions
+}
+
+install_chrome()
+{
+	install_package google-chrome-stable \
+		https://dl.google.com/linux/direct \
+		google-chrome-stable_current_amd64.deb && return
+	NEED_FORCE_UPDATE=true
+}
+
+update_system()
+{
+	local TIME_NOW=`date +%s`
+	local LAST_UPDATE=0
+	local TIMESTAMP=$HOME/.last_update
+	[ -f $TIMESTAMP ] && LAST_UPDATE=$(cat $TIMESTAMP)
+
+	if [ -f $SCRIPTDIR/scripts/vim-update ]; then
+		$SCRIPTDIR/scripts/vim-update
+	else
+		vim +PlugUpdate +qall
+	fi
+	[ $TIME_NOW -lt $(($LAST_UPDATE+28800)) ] && return
+	echo $TIME_NOW > $TIMESTAMP
+	[ -d $HOME/.oh-my-zsh ] && cd $HOME/.oh-my-zsh && git pull --rebase
+	vim +PlugUpgrade +qall
+	if $OSX; then
+		print_title "Updating brew..."
+		brew update --all && brew upgrade && brew cask update && \
+			brew cleanup && brew cask cleanup
+	else
+		sudo apt-get update
+		sudo apt-get dist-upgrade
+		sudo apt autoremove
+	fi
+}
+
+install_homebrew()
+{
+	local BREW_URL=$GITRAW/Homebrew/install/master/install
+	if [ ! -x /usr/local/bin/brew ]; then
+		print_title "Homebrew not installed. Installing it now..."
+		ruby -e "$(curl -fsSL $BREW_URL)"
+	fi
+
+	# Install homebrew apps
+	install_package autojump
+	install_package tmux
+	install_package the_silver_searcher
+	install_package autojump
+	install_package cmake
+	install_package ccache
+	install_package git --with-pcre --with-brewed-curl --with-brewed-openssl
+	install_package vim --override-system-vi
+	install_package pv
+	install_package ctags
+	install_package cscope
+	install_package fish
+	install_package python3
+	install_package reattach-to-user-namespace
+	install_package lbzip2
+}
+
+install_xcode()
+{
+	if [ ! -d '/Applications/Xcode.app' ]; then
+		echo 'XCode is not installed, opening app store'
+		open 'macappstores://itunes.apple.com/us/app/xcode/id497799835?mt=12'
+		exit 0
+	fi
+}
+
+is_cask_package_exists()
+{
+	brew cask list $1 &> /dev/null
+	return $?
+}
+
+download_plist()
+{
+	if is_cask_package_exists $1; then
+		curl -fsSL $MYGITRAW/plists/$2 -o $HOME/Library/Preferences/$2
+		defaults read $2 &> /dev/null
+	fi
+}
+
+install_osx_applications()
+{
+	local LIST="java android-studio spectacle beyond-compare electronic-wechat "
+	LIST+="google-chrome google-drive iterm2 spotify transmission "
+	for pkg in $(echo $LIST); do
+		is_cask_package_exists $pkg && continue
+		print_title "Installing $pkg..."
+		sudo brew cask install $pkg
+	done
+
+	download_plist iterm2 com.googlecode.iterm2.plist
+	local CHROME_ICONS="$HOME/Applications/Chrome Apps.localized"
+	[ -d "$CHROME_ICONS" ] && rm -fr $CHROME_ICONS
+}
+
+disable_dashboard()
+{
+	local DOMAIN_KEY="com.apple.dashboard mcx-disabled"
+	if [[ $(defaults read $DOMAIN_KEY) -ne 1 ]]; then
+		defaults write $DOMAIN_KEY -boolean YES && killall Dock
+	fi
+}
+
+add_italic_support()
+{
+	cd $HOME
+	local TERMFILE=xterm-256color.terminfo
+	cat << EOT > $TERMFILE
+xterm-256color|xterm with 256 colors and italic,
+	ritm=\E[23m, sitm=\E[3m,
+	use=xterm-256color,
+EOT
+	tic $TERMFILE
+	rm $TERMFILE
+
+	TERMFILE=screen-256color.terminfo
+	cat << EOT > $TERMFILE
+screen-256color|screen with 256 colors and italic,
+	ritm=\E[23m, sitm=\E[3m,
+	use=screen-256color,
+EOT
+	tic $TERMFILE
+	rm $TERMFILE
+}
+
+install_jdk()
+{
+	local package_name=oracle-java9-installer
+	is_package_exist $package_name && return 0
+	sudo add-apt-repository ppa:webupd8team/java
+	sudo apt-get update
+	sudo apt-get install $package_name
+}
+
+setup_byobu()
+{
+	! is_package_exist byobu && return
+	export BYOBU_PREFIX=/usr
+	if [ -f /usr/local/bin/byobu ]; then
+	! in_cfg $HOME/.bashrc BYOBU_PREFIX && cat << EOT >> $HOME/.bashrc
+export BYOBU_PREFIX=/usr/local
+EOT
+	! in_cfg $HOME/.zshrc BYOBU_PREFIX && cat << EOT >> $HOME/.zshrc
+export BYOBU_PREFIX=/usr/local
+EOT
+	! in_cfg $HOME/.config/fish/config.fish BYOBU_PREFIX &&
+		cat << EOT >> $HOME/.config/fish/config.fish
+set -x BYOBU_PREFIX /usr/local
+EOT
+	fi
+	# Disable Function keys by default
+	sudo sed -i 's/f-keys.tmux/f-keys.tmux.disable/g' \
+		$BYOBU_PREFIX/share/byobu/profiles/tmux
+	byobu-tmux -c exit
+	local BYOBUCFG=$HOME/.byobu
+	local TMUXCONF=$BYOBUCFG/.tmux.conf
+	[ -L $TMUXCONF ] && return
+	[ -f $TMUXCONF ] && rm $TMUXCONF
+	cd $BYOBUCFG
+	ln -s ~/.tmux-common.conf .tmux.conf
+	byobu-enable
+}
+
+setup_lbzip2()
+{
+	local DIR=/usr/local/bin
+	[ ! -f $DIR/bzip2 ] && ln -sf /usr/bin/lbzip2 $DIR/bzip2
+	[ ! -f $DIR/bunzip2 ] && ln -sf /usr/bin/lbzip2 $DIR/bunzip2
+	[ ! -f $DIR/bzat ] && ln -sf /usr/bin/lbzip2 $DIR/bzcat
+}
+
+setup_tig()
+{
+	[ ! -f $HOME/.tigrc ] && curl -fsSL $MYGITRAW/tigrc -o $HOME/.tigrc
+}
+
+setup_sudoer()
+{
+	local SUDOER=/etc/sudoers
+	[ ! -f $SUDOER ] && return
+	sudo bash -c "! grep timestamp_timeout $SUDOER > /dev/null && echo -e '\nDefaults !tty_tickets\nDefaults timestamp_timeout=-1' >> $SUDOER"
+}
+
+vlc_subtitle()
+{
+	local DESTDIR=''
+	if $OSX; then
+		DESTDIR=/Applications/VLC.app/Contents/MacOS/share/lua/extensions
+	else
+		DESTDIR=/usr/lib/vlc/lua/extensions
+	fi
+	[ ! -d $DESTDIR ] && sudo mkdir -p $DESTDIR
+	[ -f $DESTDIR/VLSub.luac ] && sudo rm $DESTDIR/VLSub.luac
+	sudo curl -fsSL $GITRAW/exebetche/vlsub/master/vlsub.lua -o $DESTDIR/vlsub.lua
+}
+
+common_bootstrap()
+{
+	config_bash
+	config_fish
+	install_fasd
+	config_fzf
+	add_local_bins
+	setup_lbzip2
+	setup_tig
+	install_vim
+	setup_pager $HOME/.bashrc
+	setup_pager $HOME/.zshrc
+	install_power_line_fonts
+	add_italic_support
+	curl -fsSL $MYGITRAW/tmux.conf -o $HOME/.tmux.conf
+	if $OSX; then
+	! in_cfg $HOME/.tmux.conf reattach-to-use && cat << EOT >> $HOME/.tmux.conf
+set-option -g default-command "reattach-to-user-namespace -l fish"
+EOT
+	fi
+	curl -fsSL $MYGITRAW/tmux-common.conf -o $HOME/.tmux-common.conf
+	curl -fsSL $MYGITRAW/astylerc -o $HOME/.astylerc
+	setup_byobu
+	generate_ssh_key
+	config_git
+	setup_ccache
+	config_bcompare
+	setup_jdk $HOME/.profile
+	setup_android_sdk
+	vlc_subtitle
+}
+
+config_goldendict()
+{
+	local DICTDIR=/usr/share/dictd
+	local OXFORD=Oxford_Advanced_Learner_English-Chinese_Dictionary-4th.bgl
+
+	[ ! -d $DICTDIR ] && sudo mkdir -p $DICTDIR
+	if [ ! -f $DICTDIR/En-En-Longman_DOCE5_Extras.ann ]; then
+		local LINK="https://www.dropbox.com/s/0afwwsrrphbnpd3/longman.txz?dl=0"
+		wget -O- "$LINK" | sudo tar -xvJ -C $DICTDIR
+	fi
+	local LINK="https://www.dropbox.com/sh/i2x1z3zwtw5dku8/AADgSAGfy90SQFx6ojchR1Gsa/Oxford_Advanced_Learner_English-Chinese_Dictionary-4th.bgl?dl=1"
+	[ ! -f $DICTDIR/$OXFORD ] && sudo wget "$LINK" -O $DICTDIR/$OXFORD
+
+	local CONFDIR=$HOME/.goldendict
+	local USERCONF=$CONFDIR/config
+	[ ! -d $CONFDIR ] && mkdir $CONFDIR
+	[ ! -f $USERCONF ] && curl -fsSL $MYGITRAW/goldendict/config -o $CONFDIR/config
+
+	CONFDIR=$HOME/.config/autostart
+	[ ! -d $CONFDIR ] && mkdir $CONFDIR
+	local AUTOFILE=goldendict.desktop
+	local AUTOSTART=$CONFDIR/$AUTOFILE
+	[ ! -f $AUTOSTART ] && curl -fsSL $MYGITRAW/goldendict/$AUTOFILE -o $AUTOSTART
+}
+
+setup_launcher()
+{
+	local DCONF_KEY=/com/canonical/unity/launcher/favorites
+	dconf read $DCONF_KEY | grep google-chrome > /dev/null 2>&1 && return
+
+	local favorites="'application://google-chrome.desktop', "
+	favorites+="'application://byobu.desktop', "
+	favorites+="'application://org.gnome.Nautilus.desktop', "
+	favorites+="'application://org.gnome.Terminal.desktop', "
+	favorites+="'application://org.gnome.Calculator.desktop', "
+	favorites+="'application://bcompare.desktop', "
+	favorites+="'application://remmina.desktop', "
+	favorites+="'application://gnome-system-monitor.desktop', "
+	favorites+="'application://vlc.desktop', "
+	favorites+="'application://libreoffice-writer.desktop', "
+	favorites+="'application://libreoffice-calc.desktop', "
+	favorites+="'application://libreoffice-impress.desktop', "
+	favorites+="'unity://running-apps', "
+	favorites+="'unity://expo-icon', "
+	favorites+="'unity://devices'"
+	dconf write $DCONF_KEY "[${favorites}]"
+}
+
+ubuntu_bootstrap()
+{
+	[ ! -f $HOME/.profile ] && cp /etc/skel/.profile $HOME/
+	[ ! -f $HOME/.bashrc ] && cp /etc/skel/.bashrc $HOME/
+	uninstall_packages
+	[ "$1" = "server" ] && exit 0
+	setup_sudoer
+	install_packages
+	set_nautilus_zoom_level
+	add_android_udev_rules
+	customize_unity
+	customize_gnome_terminal
+	install_chrome
+	install_bcompare
+	install_docker
+	install_jdk
+	config_wireshark
+	config_virtualbox
+	add_to_group dialout
+	config_goldendict
+	install_sogou
+	$NEED_FORCE_UPDATE && sudo apt-get -f -y install
+	update_sogou_config
+	setup_launcher
+}
+
+osx_bootstrap()
+{
+	[ ! -f $HOME/.profile ] && touch $HOME/.profile
+	[ ! -f $HOME/.bashrc ] && touch $HOME/.bashrc
+	disable_dashboard
+	install_xcode
+	install_homebrew
+	install_osx_applications
+	update_system
+}
+
+prepare_local()
+{
+	[ ! -d /usr/local ] && mkdir /usr/local
+	local OWNER=`ls -ld /usr/local | awk '{print $3}'`
+	local MYNAME=`whoami`
+	[ "$OWNER" == "$MYNAME" ] && return
+	if $OSX; then
+		sudo chown -R $MYNAME /usr/local
+	else
+		sudo chown -R $MYNAME:$MYNAME /usr/local
+	fi
+}
+
+prepare_local
+if $OSX; then
+	osx_bootstrap
+	print_title "Please use sudo trimforce enable to enable trim on SSD!"
+else
+	ubuntu_bootstrap $1
+fi
+common_bootstrap
+! $OSX && update_system
