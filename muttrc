@@ -1,0 +1,75 @@
+# VIM key binding
+# Moving around
+bind attach,browser,index       g   noop
+bind attach,browser,index       gg  first-entry
+bind attach,browser,index       G   last-entry
+bind pager                      g  noop
+bind pager                      gg  top
+bind pager                      G   bottom
+bind pager                      k   previous-line
+bind pager                      j   next-line
+
+# Scrolling
+bind attach,browser,pager,index \CF next-page
+bind attach,browser,pager,index \CB previous-page
+bind attach,browser,pager,index \Cu half-up
+bind attach,browser,pager,index \Cd half-down
+bind browser,pager              \Ce next-line
+bind browser,pager              \Cy previous-line
+bind index                      \Ce next-line
+bind index                      \Cy previous-line
+
+bind pager,index                d   noop
+bind pager,index                dd  delete-message
+
+# Mail & Reply
+bind index                      \Cm list-reply # Doesn't work currently
+
+# Threads
+bind browser,pager,index        N   search-opposite
+bind pager,index                dT  delete-thread
+bind pager,index                dt  delete-subthread
+bind pager,index                gt  next-thread
+bind pager,index                gT  previous-thread
+bind index                      za  collapse-thread
+bind index                      zA  collapse-all # Missing :folddisable/foldenable
+
+# View
+lists .*@vger.kernel.org
+alternative_order text/plain text/html *
+auto_view text/html
+set mark_old=no
+set mailcap_path=/local/yinli/.mutt/mailcap
+set message_cachedir=/local/yinli/.mutt/cache/bodies
+set certificate_file=/local/yinli/.mutt/certificates
+set sort=threads
+set sort_aux=last-date-received
+set sort_re
+set nobeep
+set quit=ask-yes
+
+# ================  IMAP ====================
+set imap_user = 'yl20csr@gmail.com'
+set imap_pass = `gpg -d ~/.mutt/password.gpg 2>/dev/null`
+set spoolfile = imaps://imap.gmail.com/INBOX
+set folder = imaps://imap.gmail.com/
+set record="imaps://imap.gmail.com/[Gmail]/Sent Mail"
+set postponed="imaps://imap.gmail.com/[Gmail]/Drafts"
+set mbox="imaps://imap.gmail.com/[Gmail]/All Mail"
+set imap_check_subscribed=yes
+
+# ================  SMTP  ====================
+set smtp_url = "smtp://yl20csr@smtp.gmail.com:587/"
+set smtp_pass = $imap_pass
+set ssl_force_tls = yes # Require encrypted connection
+set send_charset="us-ascii:utf-8"
+
+# ================  Composition  ====================
+set editor = vi
+set edit_headers = yes  # See the headers when editing
+set charset = UTF-8     # value of $LANG; also fallback for send_charset
+# Sender, email address, and sign-off line must match
+unset use_domain        # because joe@localhost is just embarrassing
+set realname = "Yin Li"
+set from = $imap_user
+set use_from = yes

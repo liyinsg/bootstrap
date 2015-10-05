@@ -1,0 +1,28 @@
+#!/bin/sh
+export ARCH=i386
+export CROSS_COMPILE=i486-linux-
+
+create_redir()
+{
+	local TARGET=${BINDIR}/${CROSS_COMPILE}$1
+	[ -f $TARGET ] && return
+	local BIN=`which $1`
+	cat  << EOT > $TARGET
+#!/bin/sh
+exec $BIN -m32 "\$@"
+EOT
+	chmod 755 $TARGET
+}
+
+create_symbols()
+{
+	local BINDIR=/usr/local/bin
+	for i in ar ld nm objcopy objdump strip; do
+		[ -L ${BINDIR}/${CROSS_COMPILE}$i ] && continue
+		ln -s `which $i` ${BINDIR}/${CROSS_COMPILE}${i}
+	done
+	create_redir gcc
+	create_redir g++
+}
+
+create_symbols

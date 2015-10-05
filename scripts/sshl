@@ -1,0 +1,2 @@
+#!/bin/sh
+gnome-terminal --title "$@" --tab --active -- ssh $@

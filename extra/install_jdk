@@ -1,0 +1,50 @@
+#!/bin/bash
+in_cfg()
+{
+	[ ! -f $1 ] && return 0
+	grep "$2" "$1" &> /dev/null
+	return $?
+}
+
+is_package_exist()
+{
+	if $OSX; then
+		brew list $1 &> /dev/null
+	else
+		dpkg --status $1 2>/dev/null | grep -q ^"Status: install ok installed"$
+	fi
+	return $?
+}
+
+setup_jdk()
+{
+	local CFG_FILE=$1
+	local JHOME=""
+	[ ! -f $CFG_FILE ] && return
+	if $OSX; then
+		JHOME="$(/usr/libexec/java_home)"
+	else
+		JHOME=/usr/lib/jvm/java-9-oracle
+		[ ! -d $JHOME ] && JHOME=/usr/lib/jvm/java-8-oracle
+		[ ! -d $JHOME ] && JHOME=/usr/lib/jvm/java-7-oracle
+		[ ! -d $JHOME ] && JHOME=/usr/lib/jvm/java-6-oracle
+		[ ! -d $JHOME ] && JHOME=/usr/lib/jvm/java-7-openjdk-amd64
+	fi
+	[ ! -d $JHOME ] && return
+	! in_cfg $CFG_FILE $JHOME && cat << EOT >> $CFG_FILE
+
+export JAVA_HOME=$JHOME
+EOT
+}
+
+install_jdk()
+{
+	local package_name=oracle-java8-installer
+	is_package_exist $package_name && return 0
+	sudo add-apt-repository ppa:webupd8team/java
+	sudo apt-get update
+	sudo apt-get install $package_name
+}
+
+install_jdk
+setup_jdk $HOME/.profile

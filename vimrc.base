@@ -1,0 +1,47 @@
+" non-plugin stuffs
+set ruler cursorline colorcolumn=80
+syntax enable
+syntax on
+let mapleader=";"
+set pastetoggle=<F8>
+
+set nu spell mouse=a showcmd nowrap showmatch incsearch wildmenu
+set history=1000
+set wildignore=*.bak,*.pyc,*.a,*.lib,*.so,*.o,.git,node_modules
+set nobackup noswapfile
+set autoread
+
+" default tab setting
+set noexpandtab shiftwidth=4 tabstop=4 softtabstop=4
+set list listchars=tab:»·,trail:·
+set foldmethod=syntax
+if has ('unnamedplus')
+  set clipboard=unnamedplus
+else
+  set clipboard=unnamed
+endif
+
+" Remove tailing spaces
+au FileType c,cpp,java,php,ts,py autocmd BufWritePre <buffer> :%s/\s\+$//e
+" Use tab instead of space in Python
+au FileType python setlocal tabstop=8
+" auto close netrw
+au FileType netrw setl bufhidden=delete
+au FileType typescript setlocal expandtab shiftwidth=2 tabstop=2 softtabstop=2
+
+" Turn on line numbering. Turn it off with set 'nonu'
+if has('mac')
+	set backspace=indent,eol,start
+endif
+
+cabbrev help tab help
+
+" Copy current file path into clipboard
+nnoremap <silent> <leader>cp :let @+ = expand("%:p")<CR>
+nnoremap <silent> <leader>cf :let @+ = expand("%:t")<CR>
+
+" Buffer
+nnoremap <silent> <leader>q :bp <BAR> bd #<CR>
+nnoremap <silent> <leader>n :enew<CR>
+nnoremap <silent> <leader><Tab> :bn<CR>
+nnoremap <silent> ZA :qa!<CR>

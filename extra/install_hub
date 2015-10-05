@@ -1,0 +1,44 @@
+#!/bin/bash
+in_cfg()
+{
+	[ ! -f $1 ] && return 0
+	grep "$2" "$1" &> /dev/null
+	return $?
+}
+
+install_completion()
+{
+	if [ -d ~/.config/fish ]; then
+		[ ! -d ~/.config/fish/completions ] && mkdir ~/.config/fish/completions
+		cp ./etc/hub.fish_completion ~/.config/fish/completions/hub.fish
+	fi
+
+	if [ -d ~/.zsh ]; then
+		[ ! -d ~/.zsh/completions ] && mkdir ~/.zsh/completions
+		cp etc/hub.zsh_completion ~/.zsh/completions/_hub
+	fi
+
+	if [ -f ~/.bashrc ]; then
+		local DIR=/usr/local/etc
+		[ ! -d $DIR ] && mkdir $DIR
+		cp etc/hub.bash_completion.sh /usr/local/etc/
+		! in_cfg $HOME/.bashrc hub.bash_completion && cat << EOT >> $HOME/.bashrc
+if [ -f /usr/local/etc/hub.bash_completion ]; then
+  . /usr/local/etc/hub.bash_completion
+fi
+EOT
+	fi
+}
+
+cd /tmp
+URL=https://github.com/github/hub/releases
+VERSION=`curl -s $URL | sed -n -e  's/^.*>hub \(.*\) for Linux 64.*/\1/p' | head -1`
+NAME=hub-linux-amd64-$VERSION
+FILE=$NAME.tgz
+wget https://github.com/github/hub/releases/download/v$VERSION/$FILE
+tar -xf $FILE
+rm $FILE
+cd $NAME
+./install
+install_completion
+cd .. && rm -fr $NAME

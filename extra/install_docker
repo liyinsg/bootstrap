@@ -1,0 +1,68 @@
+#!/bin/bash
+
+OSX=false
+[ `uname` == "Darwin" ] && OSX=true
+
+print_title()
+{
+	echo -e "`tput bold`$@`tput sgr0`"
+}
+
+is_package_exist()
+{
+	dpkg --status $1 2>/dev/null | grep -q ^"Status: install ok installed"$
+	return $?
+}
+
+install_package()
+{
+	local package_name=$1
+	is_package_exist $package_name && return 0
+
+	print_title "Installing $package_name..."
+	if $OSX; then
+		brew install $@
+	else
+		local url_base=$2
+		local file_name=$3
+		cd /tmp
+		rm -f $file_name*
+		wget $url_base/$file_name
+		sudo dpkg -i $file_name
+		rm -f $file_name
+	fi
+	return 1
+}
+
+add_to_group()
+{
+	local GROUP=$1
+	groups $USER | grep &>/dev/null "\b${GROUP}\b" && return
+	sudo adduser $USER $GROUP
+}
+
+install_kernel_extra()
+{
+	local KERNEL_VERSION=`uname -r | sed -r 's/(.*)-[a-z]+/\1/g'`
+	local KERNEL_EXTRA=linux-image-extra-$KERNEL_VERSION-generic
+	if ! is_package_exist $KERNEL_EXTRA; then
+		# Use AUFS
+		sudo apt-get install -y $KERNEL_EXTRA
+	fi
+}
+
+install_docker()
+{
+	is_package_exist docker.io && return
+	is_package_exist docker-engine && return
+	curl -fsSL https://get.docker.com/ | sh
+	if [ $? -ne 0 ]; then
+		local URL=https://apt.dockerproject.org/repo/pool/main/d/docker-engine
+		local VERSION=`curl -s $URL | sed -n -e 's/^.*>\(.*\)_amd64.deb.*/\1/p' | grep ubuntu | tail  -1`
+		install_package docker-engine $URL ${VERSION}_amd64.deb
+	fi
+
+	add_to_group docker
+}
+
+install_docker

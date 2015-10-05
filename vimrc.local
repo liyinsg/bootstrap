@@ -1,0 +1,184 @@
+" Load vim-plug
+set nocompatible
+set shell=/bin/bash
+set rtp+=/usr/local/etc/vim
+if empty(glob("/usr/local/etc/vim/autoload/plug.vim"))
+  silent !curl -fLo /usr/local/etc/vim/autoload/plug.vim --create-dirs
+	\ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+  autocmd VimEnter * PlugInstall | source $MYVIMRC
+endif
+
+call plug#begin("/usr/local/etc/vim/plugged")
+Plug 'morhetz/gruvbox'
+Plug 'bling/vim-airline'
+Plug 'tpope/vim-fugitive'
+Plug 'airblade/vim-gitgutter'
+Plug 'vim-scripts/autoload_cscope.vim'
+Plug 'Valloric/YouCompleteMe' | Plug 'rdnetto/YCM-Generator', {'branch': 'stable'}
+Plug 'SirVer/ultisnips' | Plug 'honza/vim-snippets'
+Plug 'kshenoy/vim-signature'
+Plug 'majutsushi/tagbar'
+Plug 'terryma/vim-multiple-cursors'
+Plug 'derekwyatt/vim-fswitch'
+Plug 'dyng/ctrlsf.vim'
+Plug 'easymotion/vim-easymotion'
+Plug 'godlygeek/tabular'
+Plug 'plasticboy/vim-markdown'
+Plug 'junegunn/fzf', {'do': './install --bin --all'}
+Plug 'junegunn/fzf.vim'
+Plug 'tpope/vim-surround'
+Plug 'leafgarland/typescript-vim'
+Plug 'w0rp/ale'
+call plug#end()	         " required
+filetype plugin indent on	 " required
+
+" theme
+set t_Co=256
+set background=dark
+let g:gruvbox_contrast_dark='hard'
+if &term =~ '256color'
+  " disable Background Color Erase (BCE)
+  set t_ut=
+  let g:gruvbox_italic=1
+endif
+colorscheme gruvbox
+
+" Use Silver Searcher
+if executable('ag')
+  " Use ag over grep
+  set grepprg=ag\ --nogroup\ --nocolor
+endif
+
+" gvim font
+set guifont=Fantasque\ Sans\ Mono\ 15
+
+" ctags
+let OmniCpp_DefaultNamespaces = ["std", "_GLIBCXX_STD"]
+set tags=./tags;/
+
+" Fswitch
+nnoremap <silent> <S-Tab> :FSHere<CR>
+
+" CtrlSF
+nmap <silent> <leader>f <Plug>CtrlSFCwordExec
+nnoremap <silent> <leader>v <Esc>:CtrlSFToggle<CR>
+
+" airline
+set hidden
+set laststatus=2
+let g:airline_powerline_fonts=1
+let g:airline#extensions#branch#enabled = 1
+let g:airline#extensions#branch#displayed_head_limit = 10
+let g:airline#extensions#hunks#enabled = 0
+let g:airline#extensions#tabline#enabled = 1
+let g:airline#extensions#tabline#buffer_idx_mode = 1
+let g:airline#extensions#whitespace#mixed_indent_algo = 1
+let g:airline#extensions#tagbar#enabled = 1
+let g:airline#extensions#fugitiveline#enabled = 1
+let g:airline#extensions#ale#enabled = 1
+let g:airline_skip_empty_sections = 1
+let g:airline_detect_spell=0
+let g:airline#extensions#wordcount#enabled = 0
+let g:airline_mode_map = {
+   \ 'n'  : 'N',
+   \ 'i'  : 'I',
+   \ 'v'  : 'V',
+   \ 'V'  : 'VL',
+   \ '' : 'VB',
+   \ }
+nmap <leader>1 <Plug>AirlineSelectTab1
+nmap <leader>2 <Plug>AirlineSelectTab2
+nmap <leader>3 <Plug>AirlineSelectTab3
+nmap <leader>4 <Plug>AirlineSelectTab4
+nmap <leader>5 <Plug>AirlineSelectTab5
+nmap <leader>6 <Plug>AirlineSelectTab6
+nmap <leader>7 <Plug>AirlineSelectTab7
+nmap <leader>8 <Plug>AirlineSelectTab8
+nmap <leader>9 <Plug>AirlineSelectTab9
+
+" YCM
+let g:ycm_global_ycm_extra_conf='/usr/local/etc/vim/ycm_extra_conf.py'
+nnoremap <silent> <leader>gd :YcmCompleter GoToDeclaration<CR>
+nnoremap <silent> <leader>gg :YcmCompleter GoToDefinitionElseDeclaration<CR>
+let g:ycm_warning_symbol='>*'
+let g:ycm_auto_trigger=1
+let g:ycm_min_num_of_chars_for_completion=1
+let g:ycm_seed_identifiers_with_syntax=1
+let g:ycm_semantic_triggers = {'c' : ['re![\D]'], 'cpp' : ['re![\D]']}
+let g:ycm_collect_identifiers_from_tags_files=0
+let g:ycm_complete_in_comments=1
+let g:ycm_confirm_extra_conf=0
+let g:ycm_cache_omnifunc=0
+let g:syntastic_error_symbol='✗'
+let g:syntastic_warning_symbol='⚠'
+
+" ultisnips
+let g:UltiSnipsExpandTrigger="<c-j>"
+let g:UltiSnipsJumpForwardTrigger="<c-j>"
+let g:UltiSnipsJumpBackwardTrigger="<c-k>"
+
+" cscope
+if has("cscope")
+    " use both cscope and ctag for 'ctrl-]', ':ta', and 'vim -t'
+    set cscopetag
+
+    " check cscope for definition of a symbol before checking ctags: set to 1
+    " if you want the reverse search order.
+    set csto=0
+
+    " show msg when any other cscope db added
+    set cscopeverbose
+
+    "   's'   symbol: find all references to the token under cursor
+    nnoremap <silent> <C-\>s :cs find s <C-R>=expand("<cword>")<CR><CR>
+    "   'g'   global: find global definition(s) of the token under cursor
+    nnoremap <silent> <C-\>g :cs find g <C-R>=expand("<cword>")<CR><CR>
+    "   'c'   calls:  find all calls to the function name under cursor
+    nnoremap <silent> <C-\>c :cs find c <C-R>=expand("<cword>")<CR><CR>
+    "   'i'   includes: find files that include the filename under cursor
+    nnoremap <silent> <C-\>i :cs find i ^<C-R>=expand("<cfile>")<CR>$<CR>
+    "   'd'   called: find functions that function under cursor calls
+    nnoremap <silent> <C-\>d :cs find d <C-R>=expand("<cword>")<CR><CR>
+endif
+
+" easy motion
+let g:EasyMotion_do_mapping = 0
+map <silent> <leader>s <Plug>(easymotion-s)
+map <silent> \ <Plug>(easymotion-s2)
+map <silent> <leader>j <Plug>(easymotion-j)
+map <silent> <leader>k <Plug>(easymotion-k)
+let g:EasyMotion_startofline = 0
+
+" TMUX
+if exists('$TMUX') && !exists('$NORENAME')
+  au BufEnter * if empty(&buftype) | call system('tmux rename-window '.expand('%:t:S')) | endif
+  au VimLeave * call system('tmux set-window automatic-rename on')
+endif
+
+" ale linter
+let g:ale_fixers = {
+\   'javascript': ['eslint'],
+\   'typescript': ['tslint'],
+\}
+let g:ale_fix_on_save = 1
+let g:ale_lint_delay = 200
+let g:ale_sign_error='✗'
+let g:ale_sign_warning='⚠'
+let g:ale_cpp_clang_options='-std=c++17 -Wall -Wextra'
+let g:ale_cpp_clangcheck_options='-std=c++17 -Wall -Wextra'
+
+" fzf
+nnoremap <silent> <C-p> :execute system('git rev-parse --is-inside-work-tree') =~ 'true' ? 'GFiles' : 'Files'<CR>
+nnoremap <silent> <C-j> :Buffers<CR>
+nnoremap <silent> <leader>F :Ag <C-R><C-W><CR>
+nnoremap <silent> gt :Tags<CR>
+nnoremap <silent> gT :BTags<CR>
+nnoremap <silent> gl :Lines<CR>
+nnoremap <silent> gL :BLines<CR>
+nnoremap <silent> gc :Commits<CR>
+nnoremap <silent> gC :BCommits<CR>
+nnoremap <silent> gh :History<CR>
+nnoremap <silent> gH :History:<CR>
+nnoremap <silent> ml :Marks<CR>
+nnoremap <silent> gz :Helptags<CR>
+nnoremap <silent> gZ :Filetypes<CR>

@@ -1,0 +1,33 @@
+# VI key bindings
+bind generic <Ctrl-f> move-page-down
+bind generic <Ctrl-b> move-page-up
+bind generic g none
+bind main G none
+bind generic G none
+bind generic gg move-first-line
+bind main G move-last-line
+bind generic G move-last-line
+
+# Customize display
+set refresh-mode = auto
+set tab-size = 4
+set main-view = line-number:no,interval=5 id:no date:relative-compact author:abbreviated commit-title:yes,graph,refs,overflow=no
+set refs-view = line-number:no id:no date:relative-compact author:abbreviated ref commit-title
+
+# Key bindings
+bind generic } @sh -c "git difftool -d %(commit)^ %(commit) &"
+bind generic I @sh -c "echo -n %(commit) | xsel -ib"
+bind main C @git checkout %(commit)
+bind refs C @git checkout %(ref)
+bind main P ?git cherry-pick %(commit)
+bind status } @git difftool -y %(commit) %(file)
+
+# For big repo
+# Use Git's default (reverse chronological) order, never automatically
+set commit-order = default
+# # Limit number of commits loaded by default to 1000
+set main-options = -n 1000
+# # Don't show staged and unstaged changes in the main view
+set show-changes = no
+# # Optionally, use the old and faster but less acurate graph renderer
+# #set main-view-commit-title-graph = v1

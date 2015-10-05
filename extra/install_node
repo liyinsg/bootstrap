@@ -1,0 +1,15 @@
+#!/bin/bash
+is_package_exist()
+{
+	dpkg --status $1 2>/dev/null | grep -q ^"Status: install ok installed"$
+	return $?
+}
+
+if ! is_package_exist nodejs; then
+	curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
+	sudo apt-get install -y nodejs
+fi
+if [ `npm config get prefix` == "/usr" ]; then
+	npm config set prefix /usr/local
+	npm install -g ts-node tslint typescript
+fi

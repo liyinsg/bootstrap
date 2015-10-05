@@ -1,0 +1,6 @@
+#!/bin/bash
+VERSION=4.0.2
+[ `redis-server -v | awk '{print $3}'` == "v=$VERSION" ] && exit
+wget -O- http://download.redis.io/releases/redis-$VERSION.tar.gz | tar -xvz -C /tmp
+cd /tmp/redis-$VERSION
+make -j9 && make install
