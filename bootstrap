@@ -852,9 +852,6 @@ setup_byobu()
 	set -x BYOBU_PREFIX /usr/local
 	EOT
 	fi
-	# Disable Function keys by default
-	sudo sed -i 's/f-keys.tmux/f-keys.tmux.disable/g' \
-		$BYOBU_PREFIX/share/byobu/profiles/tmux
 	byobu-tmux -c exit
 	local BYOBUCFG=$HOME/.byobu
 	local TMUXCONF=$BYOBUCFG/.tmux.conf
@@ -862,6 +859,12 @@ setup_byobu()
 	[ -f $TMUXCONF ] && rm $TMUXCONF
 	cd $BYOBUCFG
 	ln -s ~/.tmux-common.conf .tmux.conf
+	STATUSRC=$HOME/.byobu/status
+	sed -i "s/^tmux_left.*/tmux_left=\"session\"/g" $STATUSRC
+	sed -i "s/^tmux_right.*/tmux_right=\"reboot_required updates_available cpu_freq time\"/g" $STATUSRC
+	# Disable Function keys by default
+	sudo sed -i 's/f-keys.tmux/f-keys.tmux.disable/g' \
+		$BYOBU_PREFIX/share/byobu/profiles/tmux
 	byobu-enable
 }
 
