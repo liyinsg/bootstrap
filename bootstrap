@@ -1073,8 +1073,6 @@ ubuntu_bootstrap()
 	lsusb -d 1b1c:0c08 && install_corsair_h80iv2_driver
 	set_nautilus_zoom_level
 	add_android_udev_rules
-	customize_unity
-	customize_gnome_terminal
 	install_chrome
 	config_wireshark
 	config_virtualbox
@@ -1083,6 +1081,10 @@ ubuntu_bootstrap()
 	install_sogou
 	$NEED_FORCE_UPDATE && sudo apt-get -f -y install
 	update_sogou_config
+
+	local VER=1
+	[ "`dconf read /system/version`" == $VER ] && return
+	local PROFILE=$GTERM/profiles:
 	is_package_exist arc-theme && set_theme
 	is_package_exist unity-session && setup_unity_launcher
 	if is_package_exist gnome-shell-extension-ubuntu-dock; then
@@ -1090,6 +1092,9 @@ ubuntu_bootstrap()
 		change_dock_icon_size
 		hide_top_bar
 	fi
+	customize_unity
+	customize_gnome_terminal
+	dconf write /system/version $VER
 }
 
 osx_bootstrap()
