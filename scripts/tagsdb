@@ -21,8 +21,7 @@ add_cpp_files()
 
 kernel()
 {
-	make O=. cscope
-	make O=. tags
+	make O=. COMPILED_SOURCE=1 cscope tags
 }
 
 if [ -f arch/x86/kernel/apic/x2apic.h ]; then
