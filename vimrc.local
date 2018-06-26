@@ -117,30 +117,6 @@ let g:UltiSnipsExpandTrigger="<c-j>"
 let g:UltiSnipsJumpForwardTrigger="<c-j>"
 let g:UltiSnipsJumpBackwardTrigger="<c-k>"
 
-" cscope
-if has("cscope")
-    " use both cscope and ctag for 'ctrl-]', ':ta', and 'vim -t'
-    set cscopetag
-
-    " check cscope for definition of a symbol before checking ctags: set to 1
-    " if you want the reverse search order.
-    set csto=0
-
-    " show msg when any other cscope db added
-    set cscopeverbose
-
-    "   's'   symbol: find all references to the token under cursor
-    nnoremap <silent> <C-\>s :cs find s <C-R>=expand("<cword>")<CR><CR>
-    "   'g'   global: find global definition(s) of the token under cursor
-    nnoremap <silent> <C-\>g :cs find g <C-R>=expand("<cword>")<CR><CR>
-    "   'c'   calls:  find all calls to the function name under cursor
-    nnoremap <silent> <C-\>c :cs find c <C-R>=expand("<cword>")<CR><CR>
-    "   'i'   includes: find files that include the filename under cursor
-    nnoremap <silent> <C-\>i :cs find i ^<C-R>=expand("<cfile>")<CR>$<CR>
-    "   'd'   called: find functions that function under cursor calls
-    nnoremap <silent> <C-\>d :cs find d <C-R>=expand("<cword>")<CR><CR>
-endif
-
 " easy motion
 let g:EasyMotion_do_mapping = 0
 map <silent> <leader>s <Plug>(easymotion-s)
