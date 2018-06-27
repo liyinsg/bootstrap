@@ -60,6 +60,7 @@ set tags=./tags;/
 nnoremap <silent> <S-Tab> :FSHere<CR>
 
 " CtrlSF
+let g:ctrlsf_case_sensitive='yes'
 nmap <silent> <leader>f <Plug>CtrlSFCwordExec
 nnoremap <silent> <leader>v <Esc>:CtrlSFToggle<CR>
 
