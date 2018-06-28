@@ -443,7 +443,7 @@ add_local_bins()
 {
 	if [ ! -f /usr/local/bin/sshl ]; then
 		curl -fsSL $MYGITRAW/scripts/sshl -o /usr/local/bin/sshl
-		chmod a+x /usr/local/bin/gr
+		chmod a+x /usr/local/bin/sshl
 	fi
 
 	if [ ! -f /usr/local/bin/gr ]; then
