@@ -62,6 +62,7 @@ install_package()
 	else
 		local url_base=$2
 		local file_name=$3
+		url_base=${url_base%/}
 		cd /tmp
 		rm -f $file_name*
 		wget $url_base/$file_name
@@ -537,14 +538,11 @@ update_sogou_config()
 install_sogou()
 {
 	is_package_exist sogoupinyin && return
-	local URL='https://pinyin.sogou.com/linux/download.php?f=linux&bit=64'
-	URL=`curl -v $URL 2>&1 | sed  -n -e 's/< Location: \(.*\)\_amd64.deb?.*/\1/p'`
-	[ -z $URL ] && return
-	URL=$URL"_amd64.deb"
-	[ $? -ne 0 ] && return
-	local VERSION=`echo $URL | cut -d _ -f 2`
-	local BASEURL="${URL%/sogoupinyin_*}"
-	local FILENAME="${URL##*/}"
+	local BASEURL=http://packages.deepin.com/deepin/pool/non-free/s/sogoupinyin/
+	local VERSION=(`curl -v $BASEURL 2>&1 | sed -n -e 's/.*>sogoupinyin\_\(.*\)\_amd64.deb<.*/\1/p'`)
+	[ -z $VERSION ] && return
+	VERSION=${VERSION[-1]}
+	local FILENAME="sogoupinyin_"$VERSION"_amd64.deb"
 
 	CURRENT_VERSION=`dpkg -l | grep sogoupinyin | awk '{print $3}'`
 	if [ "$CURRENT_VERSION" != "$VERSION" ] ; then
