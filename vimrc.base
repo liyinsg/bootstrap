@@ -23,6 +23,7 @@ endif
 
 " Remove tailing spaces
 au FileType c,cpp,java,php,ts,py autocmd BufWritePre <buffer> :%s/\s\+$//e
+au FileType c,cpp,java setlocal cino+=(0
 " Use tab instead of space in Python
 au FileType python setlocal tabstop=8
 " auto close netrw
