@@ -301,6 +301,7 @@ config_git()
 	git config --global user.name "$USER_NAME"
 	git config --global user.email "$USER_MAIL"
 	git config --global core.autocrlf input
+	git config --global core.whitespace cr-at-eol
 	git config --global push.default simple
 	git config --global remote.origin.prune true
 	if ! in_cfg $HOME/.gitconfig bc3; then
