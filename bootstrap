@@ -41,6 +41,19 @@ in_cfg()
 	return $?
 }
 
+add_ppa() {
+	for i in "$@"; do
+		grep -h "^deb.*$i" /etc/apt/sources.list.d/* > /dev/null 2>&1
+		if [ $? -ne 0 ]
+		then
+			if [ -n $http_proxy ]; then
+				[ $http_proxy != http://* ] && export http_proxy=http://$http_proxy
+			fi
+			sudo -E add-apt-repository -y ppa:$i
+		fi
+	done
+}
+
 is_package_exist()
 {
 	if $OSX; then
@@ -105,8 +118,20 @@ uninstall_deb_packages()
 	fi
 }
 
+update_fish()
+{
+	if [ `lsb_release -sr | cut -d '.' -f 1` -lt 17 ]; then
+		add_ppa fish-shell/release-2
+	fi
+	if is_package_exist fish; then
+		local VERSION=`dpkg-query --showformat='${Version}' --show fish | cut -d '.' -f 2`
+		[ $VERSION -lt 3 ] && sudo apt-get remove --purge fish
+	fi
+}
+
 install_deb_packages()
 {
+	update_fish
 	local INSTALL_LIST="byobu gitk vim-gtk3 sshfs ccache p7zip-full unifdef "
 	INSTALL_LIST+="python3-dev cscope exuberant-ctags silversearcher-ag ranger "
 	INSTALL_LIST+="build-essential astyle clang exfat-fuse exfat-utils xclip "
