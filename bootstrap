@@ -468,6 +468,11 @@ config_virtualbox()
 
 add_local_bins()
 {
+	if [ ! -f /usr/local/bin/repo ]; then
+		curl -fsSL https://storage.googleapis.com/git-repo-downloads/repo -o /usr/local/bin/repo
+		chmod a+x /usr/local/bin/repo
+	fi
+
 	if [ ! -f /usr/local/bin/sshl ]; then
 		curl -fsSL $MYGITRAW/scripts/sshl -o /usr/local/bin/sshl
 		chmod a+x /usr/local/bin/sshl
