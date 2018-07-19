@@ -146,7 +146,7 @@ let g:ale_cpp_clangcheck_options='-std=c++17 -Wall -Wextra'
 
 " fzf
 nnoremap <silent> <C-p> :execute system('git rev-parse --is-inside-work-tree') =~ 'true' ? 'GFiles' : 'Files'<CR>
-nnoremap <silent> <C-j> :Buffers<CR>
+nnoremap <silent> <leader><Tab> :Buffers<CR>
 nnoremap <silent> <leader>F :Ag <C-R><C-W><CR>
 nnoremap <silent> gt :Tags<CR>
 nnoremap <silent> gT :BTags<CR>

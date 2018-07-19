@@ -44,5 +44,4 @@ nnoremap <silent> <leader>cf :let @+ = expand("%:t")<CR>
 " Buffer
 nnoremap <silent> <leader>q :bp <BAR> bd #<CR>
 nnoremap <silent> <leader>n :enew<CR>
-nnoremap <silent> <leader><Tab> :bn<CR>
 nnoremap <silent> ZA :qa!<CR>

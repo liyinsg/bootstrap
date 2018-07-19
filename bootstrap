@@ -214,7 +214,7 @@ install_vim()
 	local VIMDIR=/usr/local/etc/vim
 	[ ! -d $VIMDIR ] && mkdir -p $VIMDIR
 	add_ycm_gen
-	verify_md5sum $VIMDIR/vimrc.local 72764d11e6eb4cd3d44f198401ee1c2f && return
+	verify_md5sum $VIMDIR/vimrc.local 1057134a65e56afa9f4347cc89c8764b && return
 	curl -fsSL $MYGITRAW/vimrc.local -o $VIMDIR/vimrc.local
 	curl -fsSL $MYGITRAW/vimrc.base -o $VIMDIR/vimrc.base
 	curl -fsSL $MYGITRAW/vimrc.idea -o $VIMDIR/vimrc.idea
