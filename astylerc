@@ -1,11 +1,31 @@
---style=kr
+mode=c
+--style=linux
+
+# C++
 attach-namespaces
 attach-classes
 attach-inlines
 attach-extern-c
+
+# indents
+--indent=force-tab=8
 indent-col1-comments
-unpad-paren
+
+# padding
+--pad-oper
+--pad-comma
+--pad-header
+
+# Attach the closing 'while' of a 'do-while' statement to the closing brace
+--attach-closing-while
+
 align-pointer=name
 align-reference=name
+
+--max-code-length=80
+
+# Remove braces for single statement
 remove-brackets
-mode=c
+# break after operator
+--break-after-logical
+--break-one-line-headers
