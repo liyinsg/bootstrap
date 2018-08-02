@@ -297,6 +297,7 @@ customize_gnome_terminal()
 			local TEXT="Please create a profile for gnome terminal first and rerun this script, Edit->Profile Preferences->Change the profile name"
 			notify-send 'Bootstrap' $TEXT
 			echo -e "\e[31m$TEXT\e[0m"
+			dconf reset /system/version
 			return
 		fi
 		ENTRY=":"$ENTRY
