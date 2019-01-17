@@ -149,11 +149,11 @@ function fish_user_key_bindings
 end
 
 function pbcopy -d "Copy data from STDIN to the clipboard"
-	xsel --clipboard --input
+	xclip -in -sel clip
 end
 
 function pbpaste -d "Paste data from the Clipboard"
-	xsel --clipboard --output
+	xclip -out -sel clip
 end
 
 function jgrep
