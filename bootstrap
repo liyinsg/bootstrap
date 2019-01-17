@@ -243,6 +243,9 @@ install_vim()
 	  source /usr/local/etc/vim/vimrc.idea
 	endif
 	EOT
+
+	local VMAN=$VIMDIR/plugged/vim-superman/bin/vman
+	[ -f $VMAN ] && ln -sf $VMAN /usr/local/bin/vman
 }
 
 generate_ssh_key()
@@ -581,29 +584,6 @@ install_sogou()
 		sudo apt-get remove -f -y sogoupinyin
 		install_package sogoupinyin $BASEURL $FILENAME && return
 		NEED_FORCE_UPDATE=true
-	fi
-}
-
-setup_pager()
-{
-	local CFG_FILE=$1
-	! in_cfg $CFG_FILE LESS && cat <<- EOT >> $CFG_FILE
-
-	# -F: quit-if-one-screen -R: raw -X: no init -S: chop long string
-	export LESS="-FRXS"
-	EOT
-
-	in_cfg $CFG_FILE MANPAGER && return
-	if $OSX; then
-		cat <<- EOT >> $CFG_FILE
-
-	export MANPAGER="col -b | vi -MR -c 'set ft=man ts=8 nolist nonu cc=0' -"
-	EOT
-	else
-		cat <<- EOT >> $CFG_FILE
-
-	export MANPAGER="/bin/sh -c \"col -b | vi -MR -c 'set ft=man ts=9 nolist nonu cc=0' -\""
-	EOT
 	fi
 }
 
@@ -1145,8 +1125,6 @@ common_bootstrap()
 	setup_lbzip2
 	setup_tig
 	install_vim
-	setup_pager $HOME/.bashrc
-	setup_pager $HOME/.zshrc
 	install_power_line_fonts
 	add_italic_support
 	if ! verify_md5sum $HOME/.tmux.conf 1f40cfa6dea8f835e70db1ff31efce07; then

@@ -29,6 +29,7 @@ Plug 'junegunn/fzf.vim'
 Plug 'tpope/vim-surround'
 Plug 'leafgarland/typescript-vim'
 Plug 'w0rp/ale'
+Plug 'jez/vim-superman'
 call plug#end()	         " required
 filetype plugin indent on	 " required
 
