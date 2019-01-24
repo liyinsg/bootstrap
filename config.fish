@@ -1,12 +1,12 @@
 set -x MENUCONFIG_COLOR classic
 set -x LESS "-FRXS"
-set -x MANPAGER "/bin/sh -c \"col -b | vi -MR -c 'set ft=man ts=9 nolist nonu cc=0' -\""
 set -x XZ_DEFAULTS "--threads=0"
 if set -q TMUX
   set -x fzf /usr/local/etc/vim/plugged/fzf/bin/fzf-tmux -d40%
 else
   set -x fzf /usr/local/etc/vim/plugged/fzf/bin/fzf
 end
+alias vi "gvim -v"
 
 function __fasd_run -e fish_preexec -d "fasd takes record of the directories changed into"
 	command nohup fasd --proc (command fasd --sanitize "$argv" | tr -s ' ' \n) > "/dev/null" 2>&1
@@ -101,7 +101,7 @@ function __edit_cmd -d 'Edit command in Vim'
 	if test -n "$f"
 		set -l p (commandline -C)
 		commandline -b > $f
-		vim -c 'set ft=fish' $f
+		vi -c 'set ft=fish' $f
 		commandline -r (more $f)
 		commandline -C $p
 		command rm $f

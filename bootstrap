@@ -614,6 +614,7 @@ config_bash()
 	local CFG_FILE=$HOME/.bashrc
 	remove_flow_control $CFG_FILE
 	! in_cfg $CFG_FILE jgrep && add_jgrep_cgrep $CFG_FILE
+	! in_cfg $CFG_FILE gvim && echo -e 'alias vi="gvim -v"' >> $CFG_FILE
 	source_autojump bash
 }
 
