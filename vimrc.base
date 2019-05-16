@@ -1,4 +1,6 @@
 " non-plugin stuffs
+set shortmess+=c
+set signcolumn=yes
 set ruler cursorline colorcolumn=80
 syntax enable
 syntax on
@@ -8,7 +10,7 @@ set pastetoggle=<F8>
 set nu spell mouse=a showcmd nowrap showmatch incsearch wildmenu
 set history=1000
 set wildignore=*.bak,*.pyc,*.a,*.lib,*.so,*.o,.git,node_modules
-set nobackup noswapfile
+set nobackup nowritebackup noswapfile
 set autoread
 
 " default tab setting

@@ -6,7 +6,7 @@ if set -q TMUX
 else
   set -x fzf /usr/local/etc/vim/plugged/fzf/bin/fzf
 end
-alias vi "gvim -v"
+alias vi nvim
 
 function __fasd_run -e fish_preexec -d "fasd takes record of the directories changed into"
 	command nohup fasd --proc (command fasd --sanitize "$argv" | tr -s ' ' \n) > "/dev/null" 2>&1

@@ -1,6 +1,8 @@
 #!/bin/bash
 USER_NAME="Li Yin"
-USER_MAIL="liyin@live.com"
+USER_MAIL=`git config user.email`
+CORE_CNT=$(cat /proc/cpuinfo | awk '/^processor/{print $3}' | wc -l)
+[ -z $USER_MAIL ] && USER_MAIL="liyin@live.com"
 
 # Constant Values
 export XZ_OPT="--threads=0"
@@ -87,11 +89,11 @@ install_package()
 
 uninstall_deb_packages()
 {
-	REMOVE_LIST+="brltty popularity-contest example-content "
+	local REMOVE_LIST="brltty popularity-contest example-content "
 	REMOVE_LIST+="xbrlapi biosdevname xul-ext-ubufox firefox "
 	REMOVE_LIST+="unity-webapps-common simple-scan totem-common onboard "
 	REMOVE_LIST+="checkbox-converged python3-checkbox-support yelp snapd "
-	REMOVE_LIST+="xdiagnose whoopsie "
+	REMOVE_LIST+="xdiagnose whoopsie nano "
 	REMOVE_LIST+="aisleriot gnome-mahjongg gnome-mines gnome-sudoku "
 	REMOVE_LIST+="ubuntu-software gnome-software-common ayatana "
 	REMOVE_LIST+="shotwell-common thunderbird rhythmbox deja-dup "
@@ -118,25 +120,21 @@ uninstall_deb_packages()
 	fi
 }
 
-update_fish()
-{
-	if [ `lsb_release -sr | cut -d '.' -f 1` -lt 17 ]; then
-		add_ppa fish-shell/release-2
-	fi
-	if is_package_exist fish; then
-		local VERSION=`dpkg-query --showformat='${Version}' --show fish | cut -d '.' -f 2`
-		[ $VERSION -lt 3 ] && sudo apt-get remove --purge fish
-	fi
-}
-
 install_deb_packages()
 {
-	update_fish
-	local INSTALL_LIST="byobu gitk vim-gtk3 sshfs ccache p7zip-full unifdef "
-	INSTALL_LIST+="python3-dev cscope exuberant-ctags silversearcher-ag ranger "
+	if ! which yarn > /dev/null; then
+		curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+		echo "deb https://dl.yarnpkg.com/debian/ stable main" | \
+			sudo tee /etc/apt/sources.list.d/yarn.list
+	fi
+
+	local INSTALL_LIST="gitk sshfs ccache p7zip-full unifdef neovim "
+	INSTALL_LIST+="python3-dev cscope universal-ctags silversearcher-ag ranger "
 	INSTALL_LIST+="build-essential astyle clang exfat-fuse exfat-utils xclip "
 	INSTALL_LIST+="cmake manpages-dev manpages-posix-dev fish curl valgrind "
-	INSTALL_LIST+="pv htop iftop tig lbzip2 asciinema automake bison flex pkg-config "
+	INSTALL_LIST+="pv htop iftop tig lbzip2 asciinema automake bison flex "
+	INSTALL_LIST+="nodejs libclang-8-dev pkg-config bear libevent-dev "
+	INSTALL_LIST+="libssl-dev yarn "
 	$ENABLE_GUI && INSTALL_LIST+="fcitx goldendict vlc kcachegrind "
 	if [ `lsb_release -sr` != "16.04" ]; then
 		$ENABLE_GUI && INSTALL_LIST+="arc-theme "
@@ -193,41 +191,22 @@ install_power_line_fonts()
 	fi
 }
 
-add_ycm_gen()
-{
-	local EXE="/usr/local/bin/ycm_gen"
-	if [ ! -f $EXE ]; then
-		local YCM_GEN="/usr/local/etc/vim/plugged/YCM-Generator/config_gen.py"
-		[ -L $EXE ] && rm $EXE
-		if [ ! -f $EXE ]; then
-			cat <<- EOT >> "$EXE"
-			#!/bin/sh
-			$YCM_GEN -v -c /usr/bin/clang \$@
-			EOT
-			chmod 755 $EXE
-		fi
-	fi
-}
-
 install_vim()
 {
 	local VIMDIR=/usr/local/etc/vim
 	[ ! -d $VIMDIR ] && mkdir -p $VIMDIR
-	add_ycm_gen
 	verify_md5sum $VIMDIR/vimrc.local 1057134a65e56afa9f4347cc89c8764b && return
 	curl -fsSL $MYGITRAW/vimrc.local -o $VIMDIR/vimrc.local
 	curl -fsSL $MYGITRAW/vimrc.base -o $VIMDIR/vimrc.base
 	curl -fsSL $MYGITRAW/vimrc.idea -o $VIMDIR/vimrc.idea
-	curl -fsSL $MYGITRAW/ycm_extra_conf.py -o $VIMDIR/ycm_extra_conf.py
 
 	local CFG_FILE=/etc/vim/vimrc
 	if $OSX; then
 		[ ! -f $CFG_FILE ] && CFG_FILE=$HOME/.vimrc
 		[ ! -f $CFG_FILE ] && touch $CFG_FILE
-	#else
-		#sudo sed -i 's/gedit.desktop/gvim.desktop/g' /etc/gnome/defaults.list
 	fi
 
+	if [ -f $CFG_FILE ]; then
 	! in_cfg $CFG_FILE /usr/local && sudo tee -a $CFG_FILE > /dev/null <<- EOT
 	" Source a local configuration file if available
 	if filereadable("/usr/local/etc/vim/vimrc.local")
@@ -235,6 +214,7 @@ install_vim()
 	  source /usr/local/etc/vim/vimrc.local
 	endif
 	EOT
+	fi
 
 	CFG_FILE=$HOME/.ideavimrc
 	! in_cfg $CFG_FILE vimrc.base && cat <<- EOT > $CFG_FILE
@@ -243,6 +223,16 @@ install_vim()
 	  source /usr/local/etc/vim/vimrc.idea
 	endif
 	EOT
+
+	CFG_FILE=$HOME/.config/nvim
+	[ ! -d $CFG_FILE ] && mkdir -p $CFG_FILE
+	CFG_FILE=$CFG_FILE/init.vim
+	if [ ! -f $CFG_FILE ]; then
+		cat <<- EOT > $CFG_FILE
+source /usr/local/etc/vim/vimrc.base
+source /usr/local/etc/vim/vimrc.local
+		EOT
+	fi
 
 	local VMAN=$VIMDIR/plugged/vim-superman/bin/vman
 	[ -f $VMAN ] && ln -sf $VMAN /usr/local/bin/vman
@@ -316,7 +306,7 @@ customize_gnome_terminal()
 	dconf write ${PROFILE}/font "'Fantasque Sans Mono ${FONT_SIZE}'"
 	dconf write ${PROFILE}/use-theme-colors false
 	dconf write ${PROFILE}/use-custom-command true
-	dconf write ${PROFILE}/custom-command "'/usr/bin/byobu-tmux new-session'"
+	dconf write ${PROFILE}/custom-command "'/usr/local/bin/tmux'"
 	dconf write ${PROFILE}/foreground-color "'rgb(255,255,255)'"
 	dconf write ${PROFILE}/background-color "'rgb(29,32,33)'"
 	dconf write ${PROFILE}/palette "['rgb(29,32,33)', 'rgb(204,36,29)', 'rgb(152,151,26)', 'rgb(215,153,33)', 'rgb(69,133,136)', 'rgb(177,98,134)', 'rgb(104,157,106)', 'rgb(168,153,132)', 'rgb(146,131,116)', 'rgb(251,73,52)', 'rgb(184,187,38)', 'rgb(250,189,47)', 'rgb(131,165,152)', 'rgb(211,134,155)', 'rgb(142,192,124)', 'rgb(235,219,178)']"
@@ -486,33 +476,6 @@ add_local_bins()
 		curl -fsSL $MYGITRAW/scripts/gr -o /usr/local/bin/gr
 		chmod a+x /usr/local/bin/gr
 	fi
-
-	if ! verify_md5sum /usr/local/bin/tagsdb c822431399238dd75020866dfc960ced; then
-		curl -fsSL $MYGITRAW/scripts/tagsdb -o /usr/local/bin/tagsdb
-		chmod a+x /usr/local/bin/tagsdb
-	fi
-
-	$OSX && return
-	# Patched version which changed upstream commit 7382ba8
-	# to fix italic support for screen-256color
-	local LIBEVENT=`dpkg -l libevent* | grep ^ii | awk '{print $3}' | cut -d '-' -f 1`
-	if [[ $LIBEVENT == 2.0.* ]]; then
-		local TMUX=tmux-libevent20
-		local MD5SUM=efaaa7287a8be65fecef9795a45be011
-	elif [[ $LIBEVENT == 2.1.* ]]; then
-		local TMUX=tmux-libevent21
-		local MD5SUM=b9e0cb5d6665f3d4c554492b13ae1099
-	else
-		echo "Unsupported libevent version"
-		exit
-	fi
-	local DEST=/usr/local/bin/tmux
-	if [ -f $DEST ]; then
-		verify_md5sum $DEST $MD5SUM && return
-		rm $DEST
-	fi
-	curl -fsSL $MYGITRAW/bin/$TMUX -o $DEST
-	chmod a+x $DEST
 }
 
 add_jgrep_cgrep()
@@ -614,7 +577,7 @@ config_bash()
 	local CFG_FILE=$HOME/.bashrc
 	remove_flow_control $CFG_FILE
 	! in_cfg $CFG_FILE jgrep && add_jgrep_cgrep $CFG_FILE
-	! in_cfg $CFG_FILE gvim && echo -e 'alias vi="gvim -v"' >> $CFG_FILE
+	! in_cfg $CFG_FILE gvim && echo -e 'alias vi="nvim"' >> $CFG_FILE
 	source_autojump bash
 }
 
@@ -733,15 +696,11 @@ update_system()
 	local TIMESTAMP=$HOME/.last_update
 	[ -f $TIMESTAMP ] && LAST_UPDATE=$(cat $TIMESTAMP)
 
-	if [ -f $SCRIPTDIR/scripts/vim-update ]; then
-		$SCRIPTDIR/scripts/vim-update
-	else
-		vim +PlugUpdate +qall
-	fi
+	SHELL=/bin/bash vim +PlugUpdate +PlugUpgrade +qall
 	[ $TIME_NOW -lt $(($LAST_UPDATE+28800)) ] && return
 	echo $TIME_NOW > $TIMESTAMP
 	[ -d $HOME/.oh-my-zsh ] && cd $HOME/.oh-my-zsh && git pull --rebase
-	vim +PlugUpgrade +qall
+	vi +PlugUpgrade +qall
 	if $OSX; then
 		print_title "Updating brew..."
 		brew update --all && brew upgrade && brew cask update && \
@@ -762,14 +721,14 @@ install_homebrew()
 	fi
 
 	# Install homebrew apps
+	install_package yarn
 	install_package autojump
-	install_package tmux
 	install_package the_silver_searcher
 	install_package autojump
 	install_package cmake
 	install_package ccache
 	install_package git --with-pcre --with-brewed-curl --with-brewed-openssl
-	install_package vim --override-system-vi
+	install_package neovim --override-system-vi
 	install_package pv
 	install_package ctags
 	install_package cscope
@@ -940,7 +899,6 @@ setup_unity_launcher()
 	favorites+="'application://org.gnome.Terminal.desktop', "
 	favorites+="'application://org.gnome.Nautilus.desktop', "
 	favorites+="'application://org.gnome.Calculator.desktop', "
-	favorites+="'application://byobu.desktop', "
 	favorites+="'application://remmina.desktop', "
 	favorites+="'application://bcompare.desktop', "
 	favorites+="'application://gnome-system-monitor.desktop', "
@@ -969,7 +927,6 @@ setup_ubuntu_dock()
 	favorites+="'org.gnome.Terminal.desktop', "
 	favorites+="'org.gnome.Nautilus.desktop', "
 	favorites+="'org.gnome.Calculator.desktop', "
-	favorites+="'byobu.desktop', "
 	favorites+="'remmina.desktop', "
 	favorites+="'bcompare.desktop', "
 	favorites+="'gnome-system-monitor.desktop', "
@@ -1116,8 +1073,54 @@ osx_bootstrap()
 	install_osx_applications
 }
 
+is_remote_changed()
+{
+	git fetch origin
+	DIFFS=`git rev-list HEAD...origin/master --count`
+	[ $DIFFS -ne 0 ] && return 0
+	return 1
+}
+
+install_tmux()
+{
+	local PATCH=0001-enable-italic-support-for-screen.patch
+	local SRCDIR=$HOME/archive/tmux
+	[ ! -d $SRCDIR ] && git clone --depth=1 \
+		https://github.com/tmux/tmux $SRCDIR
+	cd $SRCDIR
+	if [ -f configure ]; then
+		git reset --hard origin/master > /dev/null
+		! is_remote_changed && return 0
+		git reset --hard origin/master
+	fi
+	[ ! -f $PATCH ] && curl -fsSL "$MYGITRAW/patches/$PATCH" -o $PATCH
+	git am $PATCH
+	./autogen.sh
+	./configure --prefix=/usr/local
+	make -j$CORE_CNT
+	make install
+	cd -
+}
+
+install_ccls()
+{
+	local SRCDIR=$HOME/archive/ccls
+	[ ! -d $SRCDIR ] && git clone --depth=1 \
+		https://github.com/MaskRay/ccls $SRCDIR
+	cd $SRCDIR
+	if [ -d Release ]; then
+		! is_remote_changed && return 0
+	fi
+	git pull && git submodule update --init
+	cmake -H. -BRelease -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/usr/bin
+	cmake --build Release
+	cp $SRCDIR/Release/ccls /usr/local/bin/
+	cd -
+}
+
 common_bootstrap()
 {
+	config_git
 	config_bash
 	config_fish
 	install_fasd
@@ -1125,6 +1128,8 @@ common_bootstrap()
 	add_local_bins
 	setup_lbzip2
 	setup_tig
+	install_tmux
+	install_ccls
 	install_vim
 	install_power_line_fonts
 	add_italic_support
@@ -1145,9 +1150,7 @@ common_bootstrap()
 		curl -fsSL $MYGITRAW/muttrc -o $HOME/.mutt/muttrc
 	fi
 	[ ! -f $HOME/.gdbinit ] && curl -fsSL $MYGITRAW/.gdbinit -o $HOME/.gdbinit
-	setup_byobu
 	generate_ssh_key
-	config_git
 	setup_ccache
 	config_ranger
 	config_bcompare

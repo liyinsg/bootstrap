@@ -2,6 +2,17 @@
 set nocompatible
 set shell=/bin/bash
 set rtp+=/usr/local/etc/vim
+let g:coc_user_config ={
+	\	"languageserver": {
+	\		"ccls": {
+	\			"command": "ccls",
+	\			"filetypes": ["c", "cpp", "cuda", "objc", "objcpp"],
+	\			"rootPatterns": [".ccls", "compile_commands.json", ".vim/", ".git/", ".hg/", ".svn", ".root"],
+	\			"initializationOptions": {"cache": {"directory": ".ccls-cache"}}
+	\		}
+	\	}
+	\}
+
 if empty(glob("/usr/local/etc/vim/autoload/plug.vim"))
   silent !curl -fLo /usr/local/etc/vim/autoload/plug.vim --create-dirs
 	\ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
@@ -13,11 +24,8 @@ Plug 'morhetz/gruvbox'
 Plug 'bling/vim-airline'
 Plug 'tpope/vim-fugitive'
 Plug 'airblade/vim-gitgutter'
-Plug 'vim-scripts/autoload_cscope.vim'
-Plug 'Valloric/YouCompleteMe' | Plug 'rdnetto/YCM-Generator', {'branch': 'stable'}
 Plug 'SirVer/ultisnips' | Plug 'honza/vim-snippets'
 Plug 'kshenoy/vim-signature'
-Plug 'majutsushi/tagbar'
 Plug 'terryma/vim-multiple-cursors'
 Plug 'derekwyatt/vim-fswitch'
 Plug 'dyng/ctrlsf.vim'
@@ -27,9 +35,11 @@ Plug 'plasticboy/vim-markdown'
 Plug 'junegunn/fzf', {'do': './install --bin --all'}
 Plug 'junegunn/fzf.vim'
 Plug 'tpope/vim-surround'
-Plug 'leafgarland/typescript-vim'
+" Plug 'leafgarland/typescript-vim'
 Plug 'w0rp/ale'
 Plug 'jez/vim-superman'
+Plug 'neoclide/coc.nvim', {'do': './install.sh nightly'}
+Plug 'ludovicchabant/vim-gutentags'
 call plug#end()	         " required
 filetype plugin indent on	 " required
 
@@ -52,10 +62,6 @@ endif
 
 " gvim font
 set guifont=Fantasque\ Sans\ Mono\ 15
-
-" ctags
-let OmniCpp_DefaultNamespaces = ["std", "_GLIBCXX_STD"]
-set tags=./tags;/
 
 " Fswitch
 nnoremap <silent> <S-Tab> :FSHere<CR>
@@ -98,22 +104,6 @@ nmap <leader>7 <Plug>AirlineSelectTab7
 nmap <leader>8 <Plug>AirlineSelectTab8
 nmap <leader>9 <Plug>AirlineSelectTab9
 
-" YCM
-let g:ycm_global_ycm_extra_conf='/usr/local/etc/vim/ycm_extra_conf.py'
-nnoremap <silent> <leader>gd :YcmCompleter GoToDeclaration<CR>
-nnoremap <silent> <leader>gg :YcmCompleter GoToDefinitionElseDeclaration<CR>
-let g:ycm_warning_symbol='>*'
-let g:ycm_auto_trigger=1
-let g:ycm_min_num_of_chars_for_completion=1
-let g:ycm_seed_identifiers_with_syntax=1
-let g:ycm_semantic_triggers = {'c' : ['re![\D]'], 'cpp' : ['re![\D]']}
-let g:ycm_collect_identifiers_from_tags_files=1
-let g:ycm_complete_in_comments=1
-let g:ycm_confirm_extra_conf=0
-let g:ycm_cache_omnifunc=0
-let g:syntastic_error_symbol='✗'
-let g:syntastic_warning_symbol='⚠'
-
 " ultisnips
 let g:UltiSnipsExpandTrigger="<c-j>"
 let g:UltiSnipsJumpForwardTrigger="<c-j>"
@@ -138,29 +128,88 @@ let g:ale_fixers = {
 \   'javascript': ['eslint'],
 \   'typescript': ['tslint'],
 \}
-let g:ale_linters = {
-\   'c': [],
-\   'cpp': [],
-\}
 let g:ale_fix_on_save = 1
 let g:ale_lint_delay = 200
 let g:ale_sign_error='✗'
 let g:ale_sign_warning='⚠'
 let g:ale_cpp_clang_options='-std=c++17 -Wall -Wextra'
 let g:ale_cpp_clangcheck_options='-std=c++17 -Wall -Wextra'
+let g:ale_cpp_ccls_init_options = {
+\   'cache': {
+\       'directory': ('/tmp/ccls/cache'),
+\   },
+\ }
 
 " fzf
 nnoremap <silent> <C-p> :execute system('git rev-parse --is-inside-work-tree') =~ 'true' ? 'GFiles' : 'Files'<CR>
 nnoremap <silent> <leader><Tab> :Buffers<CR>
 nnoremap <silent> <leader>F :Ag <C-R><C-W><CR>
 nnoremap <silent> gt :Tags<CR>
-nnoremap <silent> gT :BTags<CR>
+nnoremap <silent> gT :BCommits<CR>
 nnoremap <silent> gl :Lines<CR>
 nnoremap <silent> gL :BLines<CR>
-nnoremap <silent> gc :Commits<CR>
-nnoremap <silent> gC :BCommits<CR>
 nnoremap <silent> gh :History<CR>
 nnoremap <silent> gH :History:<CR>
 nnoremap <silent> ml :Marks<CR>
 nnoremap <silent> gz :Helptags<CR>
 nnoremap <silent> gZ :Filetypes<CR>
+
+" ctags
+set tags=./.tags;,.tags
+let OmniCpp_DefaultNamespaces = ["std", "_GLIBCXX_STD"]
+let g:gutentags_project_root = ['.root', '.svn', '.git', '.project', 'compile_commands.json']
+let g:gutentags_ctags_tagfile = '.tags'
+let s:vim_tags = expand('~/.cache/tags')
+let g:gutentags_cache_dir = s:vim_tags
+if !isdirectory(s:vim_tags)
+   silent! call mkdir(s:vim_tags, 'p')
+endif
+let g:gutentags_ctags_extra_args = ['--fields=+niazS', '--extra=+q']
+let g:gutentags_ctags_extra_args += ['--c++-kinds=+pxI']
+let g:gutentags_ctags_extra_args += ['--c-kinds=+px']
+
+" coc
+let g:airline_section_error = '%{airline#util#wrap(airline#extensions#coc#get_error(),0)}'
+let g:airline_section_warning = '%{airline#util#wrap(airline#extensions#coc#get_warning(),0)}'
+
+" Use tab for trigger completion with characters ahead and navigate.
+" Use command ':verbose imap <tab>' to make sure tab is not mapped by other plugin.
+inoremap <silent><expr> <TAB>
+      \ pumvisible() ? "\<C-n>" :
+      \ <SID>check_back_space() ? "\<TAB>" :
+      \ coc#refresh()
+inoremap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<C-h>"
+
+function! s:check_back_space() abort
+  let col = col('.') - 1
+  return !col || getline('.')[col - 1]  =~# '\s'
+endfunction
+
+" Use <cr> to confirm completion, `<C-g>u` means break undo chain at current position.
+" Coc only does snippet and additional edit on confirm.
+inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
+
+" Use K to show documentation in preview window
+nnoremap <silent> K :call <SID>show_documentation()<CR>
+function! s:show_documentation()
+  if (index(['vim','help'], &filetype) >= 0)
+    execute 'h '.expand('<cword>')
+  else
+    call CocAction('doHover')
+  endif
+endfunction
+
+" Highlight symbol under cursor on CursorHold
+set updatetime=300
+au CursorHold * silent call CocActionAsync('highlight')
+au CursorHoldI * sil call CocActionAsync('showSignatureHelp')
+
+" Remap for rename current word
+nmap <leader>rn <Plug>(coc-rename)
+
+" caller
+nmap <silent> gc <Plug>(coc-references)
+" callee
+nn <silent> gC :call CocLocations('ccls','$ccls/call',{'callee':v:true})<cr>
+nmap <silent> gd <Plug>(coc-definition)
+nmap <silent> gD <Plug>(coc-type-definition)
