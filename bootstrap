@@ -1,7 +1,7 @@
 #!/bin/bash
 USER_NAME="Li Yin"
 USER_MAIL=`git config user.email`
-CORE_CNT=$(cat /proc/cpuinfo | awk '/^processor/{print $3}' | wc -l)
+JOBCNT=$((`cat /proc/cpuinfo | awk '/^processor/{print $3}' | wc -l` + 1))
 [ -z $USER_MAIL ] && USER_MAIL="liyin@live.com"
 
 # Constant Values
@@ -128,8 +128,8 @@ install_deb_packages()
 			sudo tee /etc/apt/sources.list.d/yarn.list
 	fi
 
-	local INSTALL_LIST="gitk sshfs ccache p7zip-full unifdef neovim "
-	INSTALL_LIST+="python3-dev cscope universal-ctags silversearcher-ag ranger "
+	local INSTALL_LIST="gitk sshfs ccache p7zip-full unifdef neovim tmux "
+	INSTALL_LIST+="python3-dev cscope universal-ctags ripgrep ranger "
 	INSTALL_LIST+="build-essential astyle clang exfat-fuse exfat-utils xclip "
 	INSTALL_LIST+="cmake manpages-dev manpages-posix-dev fish curl valgrind "
 	INSTALL_LIST+="pv htop iftop tig lbzip2 asciinema automake bison flex "
@@ -306,7 +306,7 @@ customize_gnome_terminal()
 	dconf write ${PROFILE}/font "'Fantasque Sans Mono ${FONT_SIZE}'"
 	dconf write ${PROFILE}/use-theme-colors false
 	dconf write ${PROFILE}/use-custom-command true
-	dconf write ${PROFILE}/custom-command "'/usr/local/bin/tmux'"
+	dconf write ${PROFILE}/custom-command "'/usr/bin/tmux'"
 	dconf write ${PROFILE}/foreground-color "'rgb(255,255,255)'"
 	dconf write ${PROFILE}/background-color "'rgb(29,32,33)'"
 	dconf write ${PROFILE}/palette "['rgb(29,32,33)', 'rgb(204,36,29)', 'rgb(152,151,26)', 'rgb(215,153,33)', 'rgb(69,133,136)', 'rgb(177,98,134)', 'rgb(104,157,106)', 'rgb(168,153,132)', 'rgb(146,131,116)', 'rgb(251,73,52)', 'rgb(184,187,38)', 'rgb(250,189,47)', 'rgb(131,165,152)', 'rgb(211,134,155)', 'rgb(142,192,124)', 'rgb(235,219,178)']"
@@ -346,6 +346,7 @@ config_git()
 	Thumbs.db
 	Desktop.ini
 	.DS_Store
+	compile_commands.json
 	EOT
 }
 
@@ -377,7 +378,7 @@ export_android_home()
 
 setup_android_sdk()
 {
-	[ -d /sys/module/vboxvideo ] && return
+	! which java && return
 	local CFG_FILE=$HOME/.profile
 	local ASDK=/usr/local/opt/android-sdk
 	if $OSX; then
@@ -723,7 +724,7 @@ install_homebrew()
 	# Install homebrew apps
 	install_package yarn
 	install_package autojump
-	install_package the_silver_searcher
+	install_package ripgrep
 	install_package autojump
 	install_package cmake
 	install_package ccache
@@ -1097,7 +1098,7 @@ install_tmux()
 	git am $PATCH
 	./autogen.sh
 	./configure --prefix=/usr/local
-	make -j$CORE_CNT
+	make -j$JOBCNT
 	make install
 	cd -
 }
@@ -1113,8 +1114,17 @@ install_ccls()
 	fi
 	git pull && git submodule update --init
 	cmake -H. -BRelease -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/usr/bin
-	cmake --build Release
+	cmake --build Release -- -j $JOBCNT
 	cp $SRCDIR/Release/ccls /usr/local/bin/
+	cd -
+}
+
+install_coc_extensions()
+{
+	[ -d $HOME/.config/coc/extensions/node_modules/coc-snippets ] && return
+	mkdir -p $HOME/.config/coc/extensions
+	cd $HOME/.config/coc/extensions
+	yarn add coc-snippets
 	cd -
 }
 
@@ -1128,11 +1138,12 @@ common_bootstrap()
 	add_local_bins
 	setup_lbzip2
 	setup_tig
-	install_tmux
+	# add_italic_support
+	# install_tmux
 	install_ccls
+	install_coc_extensions
 	install_vim
 	install_power_line_fonts
-	add_italic_support
 	if ! verify_md5sum $HOME/.tmux.conf 1f40cfa6dea8f835e70db1ff31efce07; then
 		curl -fsSL $MYGITRAW/tmux.conf -o $HOME/.tmux.conf
 		curl -fsSL $MYGITRAW/tmux-common.conf -o $HOME/.tmux-common.conf

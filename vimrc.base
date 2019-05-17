@@ -2,6 +2,7 @@
 set shortmess+=c
 set signcolumn=yes
 set ruler cursorline colorcolumn=80
+set termguicolors
 syntax enable
 syntax on
 let mapleader=";"

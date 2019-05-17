@@ -1,7 +1,9 @@
 " Load vim-plug
 set nocompatible
-set shell=/bin/bash
+"set shell=/bin/bash
 set rtp+=/usr/local/etc/vim
+let g:asyncrun_open = 12
+let g:rooter_change_directory_for_non_project_files = 'current'
 let g:coc_user_config ={
 	\	"languageserver": {
 	\		"ccls": {
@@ -24,7 +26,8 @@ Plug 'morhetz/gruvbox'
 Plug 'bling/vim-airline'
 Plug 'tpope/vim-fugitive'
 Plug 'airblade/vim-gitgutter'
-Plug 'SirVer/ultisnips' | Plug 'honza/vim-snippets'
+Plug 'airblade/vim-rooter'
+Plug 'honza/vim-snippets'
 Plug 'kshenoy/vim-signature'
 Plug 'terryma/vim-multiple-cursors'
 Plug 'derekwyatt/vim-fswitch'
@@ -35,11 +38,13 @@ Plug 'plasticboy/vim-markdown'
 Plug 'junegunn/fzf', {'do': './install --bin --all'}
 Plug 'junegunn/fzf.vim'
 Plug 'tpope/vim-surround'
-" Plug 'leafgarland/typescript-vim'
+Plug 'vivien/vim-linux-coding-style'
 Plug 'w0rp/ale'
 Plug 'jez/vim-superman'
+Plug 'skywind3000/asyncrun.vim'
 Plug 'neoclide/coc.nvim', {'do': './install.sh nightly'}
-Plug 'ludovicchabant/vim-gutentags'
+" Plug 'leafgarland/typescript-vim'
+" Plug 'ludovicchabant/vim-gutentags'
 call plug#end()	         " required
 filetype plugin indent on	 " required
 
@@ -47,9 +52,7 @@ filetype plugin indent on	 " required
 set t_Co=256
 set background=dark
 let g:gruvbox_contrast_dark='hard'
-if &term =~ '256color'
-  " disable Background Color Erase (BCE)
-  set t_ut=
+if &term =~ '256color' || &term == 'nvim'
   let g:gruvbox_italic=1
 endif
 colorscheme gruvbox
@@ -104,11 +107,6 @@ nmap <leader>7 <Plug>AirlineSelectTab7
 nmap <leader>8 <Plug>AirlineSelectTab8
 nmap <leader>9 <Plug>AirlineSelectTab9
 
-" ultisnips
-let g:UltiSnipsExpandTrigger="<c-j>"
-let g:UltiSnipsJumpForwardTrigger="<c-j>"
-let g:UltiSnipsJumpBackwardTrigger="<c-k>"
-
 " easy motion
 let g:EasyMotion_do_mapping = 0
 map <silent> <leader>s <Plug>(easymotion-s)
@@ -143,11 +141,10 @@ let g:ale_cpp_ccls_init_options = {
 " fzf
 nnoremap <silent> <C-p> :execute system('git rev-parse --is-inside-work-tree') =~ 'true' ? 'GFiles' : 'Files'<CR>
 nnoremap <silent> <leader><Tab> :Buffers<CR>
-nnoremap <silent> <leader>F :Ag <C-R><C-W><CR>
-nnoremap <silent> gt :Tags<CR>
+nnoremap <silent> <leader>F :Rg <C-R><C-W><CR>
+nnoremap <silent> <expr> gt ":Rg ".input("search:")."<CR>"
 nnoremap <silent> gT :BCommits<CR>
 nnoremap <silent> gl :Lines<CR>
-nnoremap <silent> gL :BLines<CR>
 nnoremap <silent> gh :History<CR>
 nnoremap <silent> gH :History:<CR>
 nnoremap <silent> ml :Marks<CR>
@@ -155,7 +152,7 @@ nnoremap <silent> gz :Helptags<CR>
 nnoremap <silent> gZ :Filetypes<CR>
 
 " ctags
-set tags=./.tags;,.tags
+set tags=./.tags;./tags;,.tags
 let OmniCpp_DefaultNamespaces = ["std", "_GLIBCXX_STD"]
 let g:gutentags_project_root = ['.root', '.svn', '.git', '.project', 'compile_commands.json']
 let g:gutentags_ctags_tagfile = '.tags'
@@ -171,23 +168,6 @@ let g:gutentags_ctags_extra_args += ['--c-kinds=+px']
 " coc
 let g:airline_section_error = '%{airline#util#wrap(airline#extensions#coc#get_error(),0)}'
 let g:airline_section_warning = '%{airline#util#wrap(airline#extensions#coc#get_warning(),0)}'
-
-" Use tab for trigger completion with characters ahead and navigate.
-" Use command ':verbose imap <tab>' to make sure tab is not mapped by other plugin.
-inoremap <silent><expr> <TAB>
-      \ pumvisible() ? "\<C-n>" :
-      \ <SID>check_back_space() ? "\<TAB>" :
-      \ coc#refresh()
-inoremap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<C-h>"
-
-function! s:check_back_space() abort
-  let col = col('.') - 1
-  return !col || getline('.')[col - 1]  =~# '\s'
-endfunction
-
-" Use <cr> to confirm completion, `<C-g>u` means break undo chain at current position.
-" Coc only does snippet and additional edit on confirm.
-inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
 
 " Use K to show documentation in preview window
 nnoremap <silent> K :call <SID>show_documentation()<CR>
@@ -213,3 +193,26 @@ nmap <silent> gc <Plug>(coc-references)
 nn <silent> gC :call CocLocations('ccls','$ccls/call',{'callee':v:true})<cr>
 nmap <silent> gd <Plug>(coc-definition)
 nmap <silent> gD <Plug>(coc-type-definition)
+
+" Use tab for trigger completion with characters ahead and navigate.
+" Use command ':verbose imap <tab>' to make sure tab is not mapped by other plugin.
+inoremap <silent><expr> <TAB>
+      \ pumvisible() ? "\<C-n>" :
+      \ <SID>check_back_space() ? "\<TAB>" :
+      \ coc#refresh()
+inoremap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<C-h>"
+
+function! s:check_back_space() abort
+  let col = col('.') - 1
+  return !col || getline('.')[col - 1]  =~# '\s'
+endfunction
+let g:coc_snippet_next = '<tab>'
+
+" Use <cr> to confirm completion, `<C-g>u` means break undo chain at current position.
+" Coc only does snippet and additional edit on confirm.
+inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
+
+vmap <C-j> <Plug>(coc-snippets-select)
+let g:coc_snippet_next = '<c-j>'
+let g:coc_snippet_prev = '<c-k>'
+imap <C-j> <Plug>(coc-snippets-expand-jump)
