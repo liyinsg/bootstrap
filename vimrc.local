@@ -164,6 +164,9 @@ endif
 let g:gutentags_ctags_extra_args = ['--fields=+niazS', '--extra=+q']
 let g:gutentags_ctags_extra_args += ['--c++-kinds=+pxI']
 let g:gutentags_ctags_extra_args += ['--c-kinds=+px']
+if executable('rg')
+  let g:gutentags_file_list_command = 'rg --files --hidden --no-messages'
+endif
 
 " coc
 let g:airline_section_error = '%{airline#util#wrap(airline#extensions#coc#get_error(),0)}'

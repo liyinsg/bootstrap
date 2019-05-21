@@ -338,6 +338,7 @@ config_git()
 	git config --global core.excludesfile ~/.gitignore
 	cat <<- EOT > $HOME/.gitignore
 	.svn/
+	.ccls-cache/
 	cscope.db
 	cscope.in.out
 	cscope.out
