@@ -18,6 +18,7 @@ set autoread
 set noexpandtab shiftwidth=4 tabstop=4 softtabstop=4
 set list listchars=tab:»·,trail:·
 set foldmethod=syntax
+set foldlevel=3
 if has ('unnamedplus')
   set clipboard=unnamedplus
 else

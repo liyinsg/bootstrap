@@ -51,6 +51,7 @@ filetype plugin indent on	 " required
 " theme
 set t_Co=256
 set background=dark
+let g:gruvbox_contrast_light='hard'
 let g:gruvbox_contrast_dark='hard'
 if &term =~ '256color' || &term == 'nvim'
   let g:gruvbox_italic=1
