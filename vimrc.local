@@ -169,24 +169,17 @@ if executable('rg')
   let g:gutentags_file_list_command = 'rg --files --hidden --no-messages'
 endif
 
-" coc
-let g:airline_section_error = '%{airline#util#wrap(airline#extensions#coc#get_error(),0)}'
-let g:airline_section_warning = '%{airline#util#wrap(airline#extensions#coc#get_warning(),0)}'
-
 " Use K to show documentation in preview window
+" Highlight symbol under cursor on CursorHold
+set updatetime=150
+au CursorHold * silent call <SID>show_documentation()
+au CursorHoldI * sil call CocActionAsync('showSignatureHelp')
 nnoremap <silent> K :call <SID>show_documentation()<CR>
 function! s:show_documentation()
-  if (index(['vim','help'], &filetype) >= 0)
-    execute 'h '.expand('<cword>')
-  else
-    call CocAction('doHover')
-  endif
+  call CocActionAsync('highlight')
+  call CocActionAsync('doHover')
 endfunction
 
-" Highlight symbol under cursor on CursorHold
-set updatetime=300
-au CursorHold * silent call CocActionAsync('highlight')
-au CursorHoldI * sil call CocActionAsync('showSignatureHelp')
 
 " Remap for rename current word
 nmap <leader>rn <Plug>(coc-rename)
@@ -194,9 +187,12 @@ nmap <leader>rn <Plug>(coc-rename)
 " caller
 nmap <silent> gc <Plug>(coc-references)
 " callee
-nn <silent> gC :call CocLocations('ccls','$ccls/call',{'callee':v:true})<cr>
+nn <silent> gC :<C-u>CocLocations('ccls','$ccls/call',{'callee':v:true})<cr>
 nmap <silent> gd <Plug>(coc-definition)
 nmap <silent> gD <Plug>(coc-type-definition)
+nmap <silent> g[ :<C-u>CocPrev<cr>
+nmap <silent> g] :<C-u>CocNext<cr>
+nmap <silent> gs :<C-u>CocListResume<cr>
 
 " Use tab for trigger completion with characters ahead and navigate.
 " Use command ':verbose imap <tab>' to make sure tab is not mapped by other plugin.
@@ -220,3 +216,8 @@ vmap <C-j> <Plug>(coc-snippets-select)
 let g:coc_snippet_next = '<c-j>'
 let g:coc_snippet_prev = '<c-k>'
 imap <C-j> <Plug>(coc-snippets-expand-jump)
+
+" coc - airline
+let g:airline_section_error = '%{airline#util#wrap(airline#extensions#coc#get_error(),0)}'
+let g:airline_section_warning = '%{airline#util#wrap(airline#extensions#coc#get_warning(),0)}'
+
