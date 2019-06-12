@@ -1,3 +1,4 @@
+set -x EDITOR vi
 set -x MENUCONFIG_COLOR classic
 set -x LESS "-FRXS"
 set -x XZ_DEFAULTS "--threads=0"
@@ -97,18 +98,6 @@ function __fzf-file-widget -d "List all files and folders"
   __fzf_from_command $FZF_CTRL_T_COMMAND
 end
 
-function __edit_cmd -d 'Edit command in Vim'
-	set -l f (mktemp /tmp/fish.cmd.XXXXXXXX)
-	if test -n "$f"
-		set -l p (commandline -C)
-		commandline -b > $f
-		vi -c 'set ft=fish' $f
-		commandline -r (more $f)
-		commandline -C $p
-		command rm $f
-	end
-end
-
 function __chdir -d "Change directory"
 	fasd -Rld (commandline -b) | eval $fzf -1 -0 +s +m | read -l result
 	if [ -n "$result" ]
@@ -132,7 +121,6 @@ function __vim_edit -d "Vim"
 end
 
 function fish_user_key_bindings
-	bind \ee __edit_cmd
 	bind \ec __chdir
 	bind \ev __vim_edit
 	bind \ct __fzf-file-widget
@@ -140,7 +128,6 @@ function fish_user_key_bindings
 	bind \cr __fzf-history-widget
 
 	if bind -M insert > /dev/null 2>&1
-		bind -M insert \ee __edit_cmd
 		bind -M insert \ec __chdir
 		bind -M insert \ev __vim_edit
 		bind -M insert \ct __fzf-file-widget
