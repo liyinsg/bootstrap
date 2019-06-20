@@ -18,7 +18,7 @@ let g:coc_user_config ={
 if empty(glob("/usr/local/etc/vim/autoload/plug.vim"))
   silent !curl -fLo /usr/local/etc/vim/autoload/plug.vim --create-dirs
 	\ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-  autocmd VimEnter * PlugInstall | source $MYVIMRC
+  autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
 endif
 
 call plug#begin("/usr/local/etc/vim/plugged")
@@ -28,6 +28,7 @@ Plug 'tpope/vim-fugitive'
 Plug 'airblade/vim-gitgutter'
 Plug 'airblade/vim-rooter'
 Plug 'honza/vim-snippets'
+Plug 'SirVer/ultisnips'
 Plug 'kshenoy/vim-signature'
 Plug 'terryma/vim-multiple-cursors'
 Plug 'derekwyatt/vim-fswitch'
@@ -108,6 +109,12 @@ nmap <leader>7 <Plug>AirlineSelectTab7
 nmap <leader>8 <Plug>AirlineSelectTab8
 nmap <leader>9 <Plug>AirlineSelectTab9
 
+
+" Ultisnips
+let g:UltiSnipsExpandTrigger="<c-j>"
+let g:UltiSnipsJumpForwardTrigger="<c-j>"
+let g:UltiSnipsJumpBackwardTrigger="<c-k>"
+
 " easy motion
 let g:EasyMotion_do_mapping = 0
 map <silent> <leader>s <Plug>(easymotion-s)
@@ -173,11 +180,13 @@ endif
 " Highlight symbol under cursor on CursorHold
 set updatetime=150
 au CursorHold * silent call <SID>show_documentation()
-au CursorHoldI * sil call CocActionAsync('showSignatureHelp')
-nnoremap <silent> K :call <SID>show_documentation()<CR>
+au CursorHoldI * sil if get(g:, 'did_coc_loaded', 0) | call CocActionAsync('showSignatureHelp') | endif
+" nnoremap <silent> K :call <SID>show_documentation()<CR>
 function! s:show_documentation()
-  call CocActionAsync('highlight')
-  call CocActionAsync('doHover')
+  if get(g:, 'did_coc_loaded', 0) && expand("<cword>") != ""
+    call CocActionAsync('highlight')
+    call CocActionAsync('doHover')
+  endif
 endfunction
 
 
@@ -211,11 +220,6 @@ let g:coc_snippet_next = '<tab>'
 " Use <cr> to confirm completion, `<C-g>u` means break undo chain at current position.
 " Coc only does snippet and additional edit on confirm.
 inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
-
-vmap <C-j> <Plug>(coc-snippets-select)
-let g:coc_snippet_next = '<c-j>'
-let g:coc_snippet_prev = '<c-k>'
-imap <C-j> <Plug>(coc-snippets-expand-jump)
 
 " coc - airline
 let g:airline_section_error = '%{airline#util#wrap(airline#extensions#coc#get_error(),0)}'
