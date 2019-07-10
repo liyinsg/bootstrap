@@ -20,7 +20,13 @@ bind generic I @sh -c "echo -n %(commit) | xsel -ib"
 bind main C @git checkout %(commit)
 bind refs C @git checkout %(ref)
 bind main P ?git cherry-pick %(commit)
+# Show diffs
 bind status } @git difftool -y %(commit) %(file)
+# Drop/Apply the selected stash:
+bind stash D !?git stash drop %(stash)
+bind stash A !?git stash apply %(stash)
+# Tag the selected commit
+bind main T !@git tag %(prompt) %(commit)
 
 # For big repo
 # Use Git's default (reverse chronological) order, never automatically
