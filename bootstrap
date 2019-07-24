@@ -323,13 +323,22 @@ config_git()
 	git config --global core.whitespace cr-at-eol
 	git config --global push.default simple
 	git config --global remote.origin.prune true
+	git config --global mergetool.prompt false
+	git config --global mergetool.keepBackup false
+	git config --global difftool.prompt false
 	if ! in_cfg $HOME/.gitconfig bc3; then
 		git config --global diff.tool bc3
 		git config --global merge.tool bc3
 		git config --global difftool.bc3 trustExitCode true
 		git config --global mergetool.bc3 trustExitCode true
 	fi
-	git config --global alias.vimdiff "difftool --tool=vimdiff --no-prompt"
+	git config --global difftool.nvimdiff.cmd 'nvim -d "$LOCAL" "$REMOTE"'
+	git config --global mergetool.nvimmerge.cmd 'nvim -f -d "$MERGED" -M "$LOCAL" "$BASE" "$REMOTE" -c "wincmd J" -c "set modifiable" -c "set write"'
+	git config --global mergetool.diffconflicts.cmd 'nvim -c DiffConflicts "$MERGED" "$BASE" "$LOCAL" "$REMOTE"'
+	git config --global mergetool.diffconflicts.trustExitCode true
+	git config --global alias.ndiff "difftool --tool=nvimdiff"
+	git config --global alias.nmerge "mergetool --tool=nvimmerge"
+	git config --global alias.nconf "mergetool --tool=diffconflicts"
 	git config --global alias.co "checkout"
 	git config --global alias.lg "log --graph --pretty=format:'%C(bold red)%h%Creset \
 -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold green)<%an>%Creset' \
