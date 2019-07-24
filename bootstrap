@@ -180,8 +180,7 @@ install_power_line_fonts()
 	local VERSION=v1.7.2/FantasqueSansMono-Normal.tar.gz
 	local DOWNLOAD=$BASEURL/$VERSION
 	local PLPATH=/tmp/powerline_fonts
-	[ ! -d $PLPATH ] && mkdir -p $PLPATH
-	curl -fsSL $DOWNLOAD -o $PLPATH/font.tar.gz
+	curl -fsSL $DOWNLOAD --create-dirs -o $PLPATH/font.tar.gz
 	tar -C $PLPATH -xf $PLPATH/font.tar.gz
 	sudo cp $PLPATH/TTF/*.ttf $DSTDIR
 	rm -rf $PLPATH
@@ -195,7 +194,7 @@ install_vim()
 {
 	local VIMDIR=/usr/local/etc/vim
 	[ ! -d $VIMDIR ] && mkdir -p $VIMDIR
-	verify_md5sum $VIMDIR/vimrc.local 1057134a65e56afa9f4347cc89c8764b && return
+	verify_md5sum $VIMDIR/vimrc.local e9c440d88e80f43c2378f96243357e47 && return
 	curl -fsSL $MYGITRAW/vimrc.local -o $VIMDIR/vimrc.local
 	curl -fsSL $MYGITRAW/vimrc.base -o $VIMDIR/vimrc.base
 	curl -fsSL $MYGITRAW/vimrc.idea -o $VIMDIR/vimrc.idea
@@ -687,7 +686,7 @@ config_fish()
 		[ ! -d $FISHCFGDIR ] && chsh -s /usr/bin/fish
 	fi
 	[ ! -d $FISHCFGDIR ] && mkdir -p $FISHCFGDIR
-	verify_md5sum $FISHCFGDIR/config.fish ab36cd602160d3e6e304c0d4f873838e && return
+	verify_md5sum $FISHCFGDIR/config.fish bde021dfbd17c9130c137e16bc394385 && return
 	curl -fsSL $MYGITRAW/config.fish -o $FISHCFGDIR/config.fish
 	[ ! -d $HOME/.local/share/fish/generated_completions ] && fish -c fish_update_completions
 }
@@ -1154,7 +1153,7 @@ common_bootstrap()
 	install_coc_extensions
 	install_vim
 	install_power_line_fonts
-	if ! verify_md5sum $HOME/.tmux.conf 1f40cfa6dea8f835e70db1ff31efce07; then
+	if ! verify_md5sum $HOME/.tmux.conf deb070d315c8eff3fe17d9ad1e350b45; then
 		curl -fsSL $MYGITRAW/tmux.conf -o $HOME/.tmux.conf
 		curl -fsSL $MYGITRAW/tmux-common.conf -o $HOME/.tmux-common.conf
 	fi
@@ -1163,14 +1162,14 @@ common_bootstrap()
 	set-option -g default-command "reattach-to-user-namespace -l fish"
 	EOT
 	fi
-	if ! verify_md5sum $HOME/.astylerc 4eb1d31d5a6cd2ce826b1ca719895c90; then
+	if ! verify_md5sum $HOME/.astylerc 68e9ef703f2add6786b308a4b6ac2785; then
 		curl -fsSL $MYGITRAW/astylerc -o $HOME/.astylerc
 	fi
 	if [ ! -f $HOME/.mutt/muttrc ]; then
 		[ ! -d $HOME/.mutt ] && mkdir $HOME/.mutt
 		curl -fsSL $MYGITRAW/muttrc -o $HOME/.mutt/muttrc
 	fi
-	[ ! -f $HOME/.gdbinit ] && curl -fsSL $MYGITRAW/.gdbinit -o $HOME/.gdbinit
+	[ ! -f $HOME/.gdbinit ] && curl -fsSL $MYGITRAW/gdbinit -o $HOME/.gdbinit
 	generate_ssh_key
 	setup_ccache
 	config_ranger
