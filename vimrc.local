@@ -196,7 +196,7 @@ nmap <leader>rn <Plug>(coc-rename)
 " caller
 nmap <silent> gc <Plug>(coc-references)
 " callee
-nn <silent> gC :<C-u>CocLocations('ccls','$ccls/call',{'callee':v:true})<cr>
+nn <silent> gC :<C-u>call CocLocations('ccls','$ccls/call',{'callee':v:true})<cr>
 nmap <silent> gd <Plug>(coc-definition)
 nmap <silent> gD <Plug>(coc-type-definition)
 nmap <silent> g[ :<C-u>CocPrev<cr>

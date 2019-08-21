@@ -128,7 +128,7 @@ install_deb_packages()
 			sudo tee /etc/apt/sources.list.d/yarn.list
 	fi
 
-	local INSTALL_LIST="gitk sshfs ccache p7zip-full unifdef neovim tmux "
+	local INSTALL_LIST="gitk sshfs ccache p7zip-full unifdef tmux python3-neovim "
 	INSTALL_LIST+="python3-dev cscope universal-ctags ripgrep ranger "
 	INSTALL_LIST+="build-essential astyle clang exfat-fuse exfat-utils xclip "
 	INSTALL_LIST+="cmake manpages-dev manpages-posix-dev fish curl valgrind "
@@ -699,6 +699,25 @@ install_chrome()
 	NEED_FORCE_UPDATE=true
 }
 
+update_nvim()
+{
+	local LINK=https://github.com/neovim/neovim/releases/download/nightly
+	local NAME=""
+	if $OSX; then
+		NAME=nvim-macos
+	else
+		NAME=nvim-linux64
+	fi
+	EXT=tar.gz
+	local FILE=$NAME.$EXT
+	curl -fsSL $LINK/$FILE --create-dirs -o /tmp/$FILE
+	tar -C /tmp -xf /tmp/$FILE
+	rm -fr /tmp/$NAME/home
+	cp -frpP /tmp/$NAME/* /usr/local/
+	rm -fr /tmp/$NAME
+	rm /tmp/$FILE
+}
+
 update_system()
 {
 	local TIME_NOW=`date +%s`
@@ -720,6 +739,7 @@ update_system()
 		sudo apt-get dist-upgrade
 		sudo apt autoremove
 	fi
+	update_nvim
 }
 
 install_homebrew()
