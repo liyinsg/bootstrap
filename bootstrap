@@ -1141,8 +1141,8 @@ install_ccls()
 	if [ -d Release ]; then
 		! is_remote_changed && return 0
 	fi
-	git pull && git submodule update --init
-	cmake -H. -BRelease -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/usr/bin
+	git fetch && git reset --hard origin/master && git submodule update --init
+	cmake -H. -BRelease -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/usr/local/bin
 	cmake --build Release -- -j $JOBCNT
 	cp $SRCDIR/Release/ccls /usr/local/bin/
 	cd -
