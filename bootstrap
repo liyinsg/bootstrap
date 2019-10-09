@@ -128,7 +128,7 @@ install_deb_packages()
 			sudo tee /etc/apt/sources.list.d/yarn.list
 	fi
 
-	local INSTALL_LIST="gitk sshfs ccache p7zip-full unifdef tmux python3-neovim "
+	local INSTALL_LIST="sshfs ccache p7zip-full unifdef tmux python3-neovim "
 	INSTALL_LIST+="python3-dev cscope universal-ctags ripgrep ranger "
 	INSTALL_LIST+="build-essential astyle clang exfat-fuse exfat-utils xclip "
 	INSTALL_LIST+="cmake manpages-dev manpages-posix-dev fish curl valgrind "
