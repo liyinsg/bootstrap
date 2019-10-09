@@ -133,16 +133,9 @@ install_deb_packages()
 	INSTALL_LIST+="build-essential astyle clang exfat-fuse exfat-utils xclip "
 	INSTALL_LIST+="cmake manpages-dev manpages-posix-dev fish curl valgrind "
 	INSTALL_LIST+="pv htop iftop tig lbzip2 asciinema automake bison flex "
-	INSTALL_LIST+="nodejs libclang-8-dev pkg-config bear libevent-dev "
-	INSTALL_LIST+="libssl-dev yarn "
+	INSTALL_LIST+="nodejs libclang-9-dev pkg-config bear yarn "
 	$ENABLE_GUI && INSTALL_LIST+="fcitx goldendict vlc kcachegrind "
-	if [ `lsb_release -sr` != "16.04" ]; then
-		$ENABLE_GUI && INSTALL_LIST+="arc-theme "
-		#INSTALL_LIST+="libncurses5:i386 "
-	fi
-	if [ `lsb_release -sr | cut -d '.' -f 1` -lt 17 ]; then
-		$ENABLE_GUI && INSTALL_LIST+="ttf-wqy-microhei "
-	fi
+	#$ENABLE_GUI && INSTALL_LIST+="arc-theme "
 	local list=""
 	print_title "Check for install:"
 	for pkg in $(echo $INSTALL_LIST); do
@@ -194,7 +187,7 @@ install_vim()
 {
 	local VIMDIR=/usr/local/etc/vim
 	[ ! -d $VIMDIR ] && mkdir -p $VIMDIR
-	verify_md5sum $VIMDIR/vimrc.local e9c440d88e80f43c2378f96243357e47 && return
+	verify_md5sum $VIMDIR/vimrc.local 79889795024716e8a0a8fc4f4032f642 && return
 	curl -fsSL $MYGITRAW/vimrc.local -o $VIMDIR/vimrc.local
 	curl -fsSL $MYGITRAW/vimrc.base -o $VIMDIR/vimrc.base
 	curl -fsSL $MYGITRAW/vimrc.idea -o $VIMDIR/vimrc.idea
@@ -942,10 +935,17 @@ setup_unity_launcher()
 	dconf write $DCONF_KEY "[${favorites}]"
 }
 
-set_theme()
+set_arc_theme()
 {
 	dconf write /org/gnome/desktop/interface/gtk-theme "'Arc'"
 	dconf write /org/gnome/desktop/wm/preferences/theme "'Arc'"
+}
+
+set_yaru_theme()
+{
+	dconf write /org/gnome/desktop/interface/gtk-theme "'Yaru-light'"
+	dconf reset /org/gnome/desktop/wm/preferences/theme
+	dconf write /org/gnome/desktop/interface/enable-animation false
 }
 
 setup_ubuntu_dock()
@@ -1083,7 +1083,8 @@ ubuntu_bootstrap()
 	local VER=1
 	[ "`dconf read /system/version`" == $VER ] && return
 	local PROFILE=$GTERM/profiles:
-	is_package_exist arc-theme && set_theme
+	is_package_exist arc-theme && set_arc_theme
+	is_package_exist yaru-theme-gtk && set_yaru_theme
 	is_package_exist unity-session && setup_unity_launcher
 	if is_package_exist gnome-shell-extension-ubuntu-dock; then
 		setup_ubuntu_dock

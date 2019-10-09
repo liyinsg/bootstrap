@@ -42,10 +42,9 @@ Plug 'tpope/vim-surround'
 Plug 'vivien/vim-linux-coding-style'
 Plug 'w0rp/ale'
 Plug 'jez/vim-superman'
-Plug 'skywind3000/asyncrun.vim'
 Plug 'neoclide/coc.nvim', {'do': './install.sh nightly'}
 " Plug 'leafgarland/typescript-vim'
-" Plug 'ludovicchabant/vim-gutentags'
+Plug 'ludovicchabant/vim-gutentags'
 call plug#end()	         " required
 filetype plugin indent on	 " required
 
