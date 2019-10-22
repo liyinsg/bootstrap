@@ -161,6 +161,7 @@ nnoremap <silent> gZ :Filetypes<CR>
 " ctags
 set tags=./.tags;./tags;,.tags
 let OmniCpp_DefaultNamespaces = ["std", "_GLIBCXX_STD"]
+let g:gutentags_enabled=0
 let g:gutentags_project_root = ['.root', '.svn', '.git', '.project', 'compile_commands.json']
 let g:gutentags_ctags_tagfile = '.tags'
 let s:vim_tags = expand('~/.cache/tags')
