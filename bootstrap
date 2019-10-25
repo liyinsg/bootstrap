@@ -718,7 +718,7 @@ update_system()
 	local TIMESTAMP=$HOME/.last_update
 	[ -f $TIMESTAMP ] && LAST_UPDATE=$(cat $TIMESTAMP)
 
-	SHELL=/bin/bash vim +PlugUpdate +PlugUpgrade +qall
+	SHELL=/bin/bash /usr/local/bin/nvim +PlugUpdate +PlugUpgrade +qall
 	[ $TIME_NOW -lt $(($LAST_UPDATE+28800)) ] && return
 	echo $TIME_NOW > $TIMESTAMP
 	[ -d $HOME/.oh-my-zsh ] && cd $HOME/.oh-my-zsh && git pull --rebase
