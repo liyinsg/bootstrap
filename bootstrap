@@ -13,16 +13,36 @@ WSL=false
 if [ `uname` == "Darwin" ]; then
 	OSX=true
 else
-	if grep -q Microsoft /proc/version; then
+	if grep -q microsoft /proc/version; then
 		WSL=true
 		ENABLE_GUI=false
 	else
+		if grep -q Microsoft /proc/version; then
+			echo "WSL1 is not supported."
+			exit 1
+		fi
 		which dconf > /dev/null && ENABLE_GUI=true
 	fi
 fi
 GITRAW=https://raw.githubusercontent.com
 MYGITRAW=$GITRAW/liyinsg/bootstrap/master
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+wsl_get_env()
+{
+	echo $(cmd.exe /c echo %$1% 2>/dev/null) | tr -d '\r'
+}
+
+wsl_get_path()
+{
+	local LINE=$(wslpath -u "$(echo $@)")
+	echo ${LINE// /\\ }
+}
+
+wsl_get_env_path()
+{
+	wsl_get_path $(wsl_get_env $1)
+}
 
 verify_md5sum()
 {
@@ -129,13 +149,17 @@ install_deb_packages()
 	fi
 
 	local INSTALL_LIST="sshfs ccache p7zip-full unifdef tmux python3-neovim "
-	INSTALL_LIST+="python3-dev cscope universal-ctags ripgrep ranger "
+	INSTALL_LIST+="python3-dev cscope ranger "
 	INSTALL_LIST+="build-essential astyle clang exfat-fuse exfat-utils xclip "
 	INSTALL_LIST+="cmake manpages-dev manpages-posix-dev fish curl valgrind "
 	INSTALL_LIST+="pv htop iftop tig lbzip2 asciinema automake bison flex "
 	INSTALL_LIST+="nodejs libclang-9-dev pkg-config bear yarn "
 	$ENABLE_GUI && INSTALL_LIST+="fcitx goldendict vlc kcachegrind "
 	#$ENABLE_GUI && INSTALL_LIST+="arc-theme "
+	# Ubuntu 18.04 doesn't support below packages
+	if [ `lsb_release -sr | cut -d '.' -f 1` -gt 18 ]; then
+		INSTALL_LIST+="universal-ctags ripgrep "
+	fi
 	local list=""
 	print_title "Check for install:"
 	for pkg in $(echo $INSTALL_LIST); do
@@ -162,7 +186,7 @@ install_power_line_fonts()
 		DSTDIR=/usr/share/fonts/truetype/fantasque-sans
 		local TEST_FONT=$DSTDIR/FantasqueSansMono-Regular.ttf
 		if [ -f $TEST_FONT ]; then
-			verify_md5sum $TEST_FONT 8cc4ad7da344381472dbb2efc1aa29bf && return
+			verify_md5sum $TEST_FONT f47be69e1b8c931931d2da5b5e9e9797 && return
 		else
 			sudo mkdir $DSTDIR
 		fi
@@ -170,7 +194,7 @@ install_power_line_fonts()
 
 	print_title "Installing power line fonts..."
 	local BASEURL=https://github.com/belluzj/fantasque-sans/releases/download
-	local VERSION=v1.7.2/FantasqueSansMono-Normal.tar.gz
+	local VERSION=v1.8.0/FantasqueSansMono-Normal.tar.gz
 	local DOWNLOAD=$BASEURL/$VERSION
 	local PLPATH=/tmp/powerline_fonts
 	curl -fsSL $DOWNLOAD --create-dirs -o $PLPATH/font.tar.gz
@@ -180,6 +204,18 @@ install_power_line_fonts()
 
 	if ! $OSX; then
 		sudo fc-cache -f -v
+	fi
+
+	if $WSL; then
+		local TEMP="$(wsl_get_env_path TEMP)"
+		cd $TEMP
+		curl -fsSL $MYGITRAW/install_fonts.vbs -o $TEMP/install_fonts.vbs
+		cp $DSTDIR/*.ttf $TEMP
+		cscript.exe install_fonts.vbs
+		#powershell.exe -Command "Start-Process cscript -Verb RunAs -ArgumentList 'install_fonts.vbs'"
+		rm install_fonts.vbs
+		rm *.ttf
+		cd -
 	fi
 }
 
@@ -580,7 +616,7 @@ config_bash()
 	local CFG_FILE=$HOME/.bashrc
 	remove_flow_control $CFG_FILE
 	! in_cfg $CFG_FILE jgrep && add_jgrep_cgrep $CFG_FILE
-	! in_cfg $CFG_FILE gvim && echo -e 'alias vi="nvim"' >> $CFG_FILE
+	! in_cfg $CFG_FILE nvim && echo -e 'alias vi="nvim"' >> $CFG_FILE
 	source_autojump bash
 }
 
@@ -681,6 +717,9 @@ config_fish()
 	[ ! -d $FISHCFGDIR ] && mkdir -p $FISHCFGDIR
 	verify_md5sum $FISHCFGDIR/config.fish bde021dfbd17c9130c137e16bc394385 && return
 	curl -fsSL $MYGITRAW/config.fish -o $FISHCFGDIR/config.fish
+	$WSL && cat <<- EOT >> $FISHCFGDIR/config.fish
+set -x DISPLAY (grep -m 1 nameserver /etc/resolv.conf | awk '{print \$2}'):0
+EOT
 	[ ! -d $HOME/.local/share/fish/generated_completions ] && fish -c fish_update_completions
 }
 
@@ -991,40 +1030,27 @@ change_dock_icon_size()
 
 wsl_download_vcxsrv()
 {
-	for x in {c..z}; do
-		[ -d "/mnt/$x/Windows/System32/bash.exe" ] && continue
-		[ -d "/mnt/$x/Program Files/VcXsrv" ] && return
-		local USERSFOLDER="/mnt/$x/Users"
-		local USERS=$(ls -d $USERSFOLDER/*/)
-		local USERPROFILE=""
-		for user in $USERS; do
-			local FOLDER=${user##$USERSFOLDER/}
-			[ "$FOLDER" == "Default/" ] && continue
-			[ "$FOLDER" == "Public/" ] && continue
-			USERPROFILE=$USERSFOLDER/$FOLDER
-			break
-		done
-		local URL=https://sourceforge.net/projects/vcxsrv/files/latest/download
-		URL=`curl -s $URL | sed -n -e 's/.*<a href="\(.*\)">.*/\1/p'`
-		curl -fsSL "$URL" -o $USERPROFILE/Downloads/vcxsrv.exe
-		break
-	done
+	local APPDATA="$(wsl_get_env_path APPDATA)"
+	local STARTUP="$APPDATA/Microsoft/Windows/Start Menu/Programs/Startup"
+	if [ ! -f "$STARTUP/config.xlaunch" ]; then
+		curl -fsSL $MYGITRAW/config.xlaunch -o "$STARTUP/config.xlaunch" 
+	fi
+	[ -d "$(wsl_get_env_path PROGRAMFILES)/VcXsrv" ] && return
+	local USERPROFILE="$(wsl_get_env_path USERPROFILE)"
+	local URL=https://sourceforge.net/projects/vcxsrv/files/latest/download
+	URL=`curl -s $URL | sed -n -e 's/.*<a href="\(.*\)">.*/\1/p'`
+	curl -fsSL "$URL" -o "$USERPROFILE/Downloads/vcxsrv.exe"
 }
 
 wsl_fix_clipboard()
 {
-	wsl_download_vcxsrv
-	# TODO: Install VcXsrv, Install https://github.com/mintty/wsltty
-	# Install font in Windows
-	# copy wsltty configure
-	# Append /usr/bin/byobu in WSL terminal shortcut
 	local CFG_FILE=$HOME/.bashrc
 	! in_cfg $CFG_FILE "umask" && cat <<- EOT >> $CFG_FILE
 	umask 022
 	EOT
 	# Fix clipboard, requires VcXsrv
 	! in_cfg $CFG_FILE "DISPLAY" && cat <<- EOT >> $CFG_FILE
-	export DISPLAY=localhost:0.0
+	export DISPLAY=\$(grep -m 1 nameserver /etc/resolv.conf | awk '{print \$2}'):0
 	EOT
 }
 
@@ -1153,7 +1179,19 @@ install_ccls()
 		! is_remote_changed && return 0
 	fi
 	git fetch && git reset --hard origin/master && git submodule update --init
-	cmake -H. -BRelease -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/usr/local/bin
+	if [ `lsb_release -sr | cut -d '.' -f 1` -gt 18 ]; then
+		cmake -H. -BRelease -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/usr/local/bin
+	else
+		local LLVM=$HOME/archive/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04
+		if [ ! -d $LLVM ]; then
+			curl -fsSL https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz -o $HOME/archive/clang.txz
+			cd $HOME/archive
+			tar -xf clang.txz
+			rm clang.txz
+			cd -
+		fi
+		cmake -H. -BRelease -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=$LLVM
+	fi
 	cmake --build Release -- -j $JOBCNT
 	cp $SRCDIR/Release/ccls /usr/local/bin/
 	cd -
@@ -1232,8 +1270,8 @@ prepare_dotfile()
 		[ ! -f $HOME/.profile ] && cp /etc/skel/.profile $HOME/
 		[ ! -f $HOME/.bashrc ] && cp /etc/skel/.bashrc $HOME/
 		if $WSL; then
+			wsl_download_vcxsrv
 			wsl_fix_clipboard
-			wsl_start_fish_by_default
 		fi
 	fi
 }
