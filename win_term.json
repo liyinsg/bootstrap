@@ -1,0 +1,61 @@
+// For documentation on these settings, see: https://aka.ms/terminal-documentation
+
+{
+    "$schema": "https://aka.ms/terminal-profiles-schema",
+
+    "defaultProfile": "{2c4de342-38b7-51cf-b940-2309a097f518}",
+
+    "alwaysShowTabs": false,
+    "copyOnSelect": true,
+
+    "profiles":
+    {
+        "defaults":
+        {
+            // Put settings here that you want to apply to all profiles
+            "colorScheme" : "onehalfdark",
+            "fontFace": "Fantasque Sans Mono",
+            "fontSize": 18
+        },
+        "list":
+        [
+            {
+                "guid": "{2c4de342-38b7-51cf-b940-2309a097f518}",
+                "hidden": false,
+                "name": "Ubuntu",
+                "source": "Windows.Terminal.Wsl"
+
+            },
+            {
+                // Make changes here to the cmd.exe profile
+                "guid": "{0caa0dad-35be-5f56-a8ff-afceeeaa6101}",
+                "name": "cmd",
+                "commandline": "cmd.exe",
+                "hidden": false
+            },
+            {
+                // Make changes here to the powershell.exe profile
+                "guid": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+                "name": "Windows PowerShell",
+                "commandline": "powershell.exe",
+                "hidden": false
+            },
+            {
+                "guid": "{b453ae62-4e3d-5e58-b989-0a998ec441b8}",
+                "hidden": false,
+                "name": "Azure Cloud Shell",
+                "source": "Windows.Terminal.Azure"
+            }
+        ]
+    },
+
+    // Add custom color schemes to this array
+    "schemes": [
+       {"name": "onehalfdark", "background" : "#282C34", "black" : "#282C34", "blue" : "#61AFEF", "brightBlack" : "#282C34", "brightBlue" : "#61AFEF", "brightCyan" : "#56B6C2", "brightGreen" : "#98C379", "brightPurple" : "#C678DD", "brightRed" : "#E06C75", "brightWhite" : "#DCDFE4", "brightYellow" : "#E5C07B", "cyan" : "#56B6C2", "foreground" : "#DCDFE4", "green" : "#98C379", "purple" : "#C678DD", "red" : "#E06C75", "white" : "#DCDFE4", "yellow" : "#E5C07B"},
+       {"name": "gruvbox", "background" : "#282828", "black" : "#1d2021", "blue" : "#458588", "brightBlack" : "#555753", "brightBlue" : "#83a598", "brightCyan" : "#FCE94F", "brightGreen" : "#b8bb26", "brightPurple" : "#d3869b", "brightRed" : "#fb4934", "brightWhite" : "#ebdbb2", "brightYellow" : "#fabd2f", "cyan" : "#C4A000", "foreground" : "#fbf1c7", "green" : "#98971a", "purple" : "#b16286", "red" : "#cc241d", "white" : "#D3D7CF", "yellow" : "#d79921"}
+    ],
+
+    // Add any keybinding overrides to this array.
+    // To unbind a default keybinding, set the command to "unbound"
+    "keybindings": []
+}

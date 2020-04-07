@@ -209,7 +209,7 @@ install_power_line_fonts()
 	if $WSL; then
 		local TEMP="$(wsl_get_env_path TEMP)"
 		cd $TEMP
-		curl -fsSL $MYGITRAW/install_fonts.vbs -o $TEMP/install_fonts.vbs
+		curl -fsSL $MYGITRAW/scripts/install_fonts.vbs -o $TEMP/install_fonts.vbs
 		cp $DSTDIR/*.ttf $TEMP
 		cscript.exe install_fonts.vbs
 		#powershell.exe -Command "Start-Process cscript -Verb RunAs -ArgumentList 'install_fonts.vbs'"
@@ -1054,6 +1054,16 @@ wsl_fix_clipboard()
 	EOT
 }
 
+wsl_config_windows_terminal()
+{
+	local LOCALAPPDATA="$(wsl_get_env_path LOCALAPPDATA)"
+	local CFGFILE="$LOCALAPPDATA/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/profiles.json"
+
+	[ ! -f $CFGFILE ] && return
+	verify_md5sum $CFGFILE f36c891618daf8db1503b97069ee9694 && return
+	curl -fsSL $MYGITRAW/win_term.json -o $CFGFILE
+}
+
 wsl_start_fish_by_default()
 {
 	local CFG_FILE=$HOME/.bashrc
@@ -1272,6 +1282,7 @@ prepare_dotfile()
 		if $WSL; then
 			wsl_download_vcxsrv
 			wsl_fix_clipboard
+			wsl_config_windows_terminal
 		fi
 	fi
 }
