@@ -767,8 +767,8 @@ update_system()
 		brew update --all && brew upgrade && brew cask update && \
 			brew cleanup && brew cask cleanup
 	else
-		sudo apt-get update
-		sudo apt-get dist-upgrade
+		sudo apt-get update -y
+		sudo apt-get dist-upgrade -y
 		sudo apt autoremove
 	fi
 	update_nvim
@@ -1109,9 +1109,17 @@ net.ipv4.tcp_congestion_control=bbr
 EOT
 }
 
+set_apple_kbd_fnmode()
+{
+	[ -f /etc/modprobe.d/hid_apple.conf ] && return
+	echo "options hid_apple fnmode=2" | sudo tee /etc/modprobe.d/hid_apple.conf
+	sudo update-initramfs -u -k all
+}
+
 ubuntu_bootstrap()
 {
 	enable_bbr
+	set_apple_kbd_fnmode
 	$ENABLE_GUI && install_bcompare
 	! $ENABLE_GUI && return
 	lsusb -d 1b1c:0c08 && install_corsair_h80iv2_driver
