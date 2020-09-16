@@ -1058,7 +1058,7 @@ wsl_fix_clipboard()
 wsl_config_windows_terminal()
 {
 	local LOCALAPPDATA="$(wsl_get_env_path LOCALAPPDATA)"
-	local CFGFILE="$LOCALAPPDATA/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/profiles.json"
+	local CFGFILE="$LOCALAPPDATA/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json"
 
 	[ ! -f "$CFGFILE" ] && return
 	verify_md5sum "$CFGFILE" f36c891618daf8db1503b97069ee9694 && return
