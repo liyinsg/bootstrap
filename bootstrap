@@ -36,7 +36,8 @@ wsl_get_env()
 wsl_get_path()
 {
 	local LINE=$(wslpath -u "$(echo $@)")
-	echo ${LINE// /\\ }
+	echo $LINE
+	#echo ${LINE// /\\ }
 }
 
 wsl_get_env_path()
@@ -208,9 +209,9 @@ install_power_line_fonts()
 
 	if $WSL; then
 		local TEMP="$(wsl_get_env_path TEMP)"
-		cd $TEMP
+		cd "$TEMP"
 		curl -fsSL $MYGITRAW/scripts/install_fonts.vbs -o $TEMP/install_fonts.vbs
-		cp $DSTDIR/*.ttf $TEMP
+		cp $DSTDIR/*.ttf "$TEMP"
 		cscript.exe install_fonts.vbs
 		#powershell.exe -Command "Start-Process cscript -Verb RunAs -ArgumentList 'install_fonts.vbs'"
 		rm install_fonts.vbs
@@ -1059,9 +1060,9 @@ wsl_config_windows_terminal()
 	local LOCALAPPDATA="$(wsl_get_env_path LOCALAPPDATA)"
 	local CFGFILE="$LOCALAPPDATA/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/profiles.json"
 
-	[ ! -f $CFGFILE ] && return
-	verify_md5sum $CFGFILE f36c891618daf8db1503b97069ee9694 && return
-	curl -fsSL $MYGITRAW/win_term.json -o $CFGFILE
+	[ ! -f "$CFGFILE" ] && return
+	verify_md5sum "$CFGFILE" f36c891618daf8db1503b97069ee9694 && return
+	curl -fsSL $MYGITRAW/win_term.json -o "$CFGFILE"
 }
 
 wsl_start_fish_by_default()
