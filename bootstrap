@@ -154,7 +154,7 @@ install_deb_packages()
 	INSTALL_LIST+="build-essential astyle clang exfat-fuse exfat-utils xclip "
 	INSTALL_LIST+="cmake manpages-dev manpages-posix-dev fish curl valgrind "
 	INSTALL_LIST+="pv htop iftop tig lbzip2 asciinema automake bison flex "
-	INSTALL_LIST+="nodejs libclang-9-dev pkg-config bear yarn "
+	INSTALL_LIST+="nodejs libclang-10-dev pkg-config bear yarn "
 	$ENABLE_GUI && INSTALL_LIST+="fcitx goldendict vlc kcachegrind "
 	#$ENABLE_GUI && INSTALL_LIST+="arc-theme "
 	# Ubuntu 18.04 doesn't support below packages
@@ -1059,7 +1059,7 @@ wsl_config_windows_terminal()
 {
 	local LOCALAPPDATA="$(wsl_get_env_path LOCALAPPDATA)"
 	local CFGFILE="$LOCALAPPDATA/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json"
-
+	[ ! -f "$CFGFILE" ] && CFGFILE="$LOCALAPPDATA/Packages/Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe/LocalState/settings.json"
 	[ ! -f "$CFGFILE" ] && return
 	verify_md5sum "$CFGFILE" f36c891618daf8db1503b97069ee9694 && return
 	curl -fsSL $MYGITRAW/win_term.json -o "$CFGFILE"
