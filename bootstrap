@@ -1216,6 +1216,38 @@ install_ccls()
 	cd -
 }
 
+update_googltest()
+{
+	local SRCDIR=$HOME/archive/benchmark/googletest
+	[ ! -d $SRCDIR ] && git clone https://github.com/google/googletest.git benchmark/googletest
+	cd $SRCDIR
+	if [ -d build ]; then
+		! is_remote_changed && return 0
+	fi
+	git pull
+	cmake -E make_directory "build"
+	cmake -E chdir "build" cmake -DCMAKE_BUILD_TYPE=Release ../
+	cmake --build "build" --config Release
+	cmake --build "build" --config Release --target install
+}
+
+install_gbench()
+{
+	local SRCDIR=$HOME/archive/benchmark
+	cd $HOME/archive
+	[ ! -d $SRCDIR ] && git clone https://github.com/google/benchmark.git
+	update_googltest
+	cd $SRCDIR
+	if [ -d build ]; then
+		! is_remote_changed && return 0
+	fi
+	git pull
+	cmake -E make_directory "build"
+	cmake -E chdir "build" cmake -DCMAKE_BUILD_TYPE=Release ../
+	cmake --build "build" --config Release
+	cmake --build "build" --config Release --target install
+}
+
 install_coc_extensions()
 {
 	[ -d $HOME/.config/coc/extensions/node_modules/coc-snippets ] && return
@@ -1238,6 +1270,7 @@ common_bootstrap()
 	# add_italic_support
 	# install_tmux
 	install_ccls
+	install_gbench
 	install_coc_extensions
 	install_vim
 	install_power_line_fonts

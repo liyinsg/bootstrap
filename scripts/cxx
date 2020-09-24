@@ -1,0 +1,6 @@
+#!/bin/bash
+filename=$(basename -- "$1")
+extension="${filename##*.}"
+filename="${filename%.*}"
+[ ! -d bin ] && mkdir bin
+[ -f $1 ] && set -x && g++ $1 -std=c++2a -ggdb -Og -lbenchmark -lgtest -lgmock -lpthread -o ./bin/$filename && ./bin/$filename
