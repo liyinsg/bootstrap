@@ -1,3 +1,4 @@
+source ~/.gdb-print.py
 set auto-load safe-path /
 set print pretty on
 set print array on

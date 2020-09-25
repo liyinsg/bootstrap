@@ -1290,6 +1290,7 @@ common_bootstrap()
 		[ ! -d $HOME/.mutt ] && mkdir $HOME/.mutt
 		curl -fsSL $MYGITRAW/muttrc -o $HOME/.mutt/muttrc
 	fi
+	[ ! -f $HOME/.gdb-print.py ] && curl -fsSL $MYGITRAW/gdb-print.py -o $HOME/.gdb-print.py
 	[ ! -f $HOME/.gdbinit ] && curl -fsSL $MYGITRAW/gdbinit -o $HOME/.gdbinit
 	generate_ssh_key
 	setup_ccache
