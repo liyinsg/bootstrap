@@ -512,9 +512,9 @@ add_local_bins()
 		chmod a+x /usr/local/bin/sshl
 	fi
 
-	if [ ! -f /usr/local/bin/gr ]; then
-		curl -fsSL $MYGITRAW/scripts/gr -o /usr/local/bin/gr
-		chmod a+x /usr/local/bin/gr
+	if [ ! -f /usr/local/bin/cxx ]; then
+		curl -fsSL $MYGITRAW/scripts/cxx -o /usr/local/bin/cxx
+		chmod a+x /usr/local/bin/cxx
 	fi
 }
 
