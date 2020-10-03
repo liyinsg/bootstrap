@@ -143,18 +143,12 @@ uninstall_deb_packages()
 
 install_deb_packages()
 {
-	if ! which yarn > /dev/null; then
-		curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-		echo "deb https://dl.yarnpkg.com/debian/ stable main" | \
-			sudo tee /etc/apt/sources.list.d/yarn.list
-	fi
-
 	local INSTALL_LIST="sshfs ccache p7zip-full unifdef tmux python3-neovim "
 	INSTALL_LIST+="python3-dev cscope ranger "
 	INSTALL_LIST+="build-essential astyle clang exfat-fuse exfat-utils xclip "
 	INSTALL_LIST+="cmake manpages-dev manpages-posix-dev fish curl valgrind "
 	INSTALL_LIST+="pv htop iftop tig lbzip2 asciinema automake bison flex "
-	INSTALL_LIST+="nodejs libclang-10-dev pkg-config bear yarn "
+	INSTALL_LIST+="nodejs npm libclang-10-dev pkg-config bear "
 	$ENABLE_GUI && INSTALL_LIST+="fcitx goldendict vlc kcachegrind "
 	#$ENABLE_GUI && INSTALL_LIST+="arc-theme "
 	# Ubuntu 18.04 doesn't support below packages
@@ -224,7 +218,7 @@ install_vim()
 {
 	local VIMDIR=/usr/local/etc/vim
 	[ ! -d $VIMDIR ] && mkdir -p $VIMDIR
-	verify_md5sum $VIMDIR/vimrc.local 140682640109d79bdfafa66be9e529be && return
+	verify_md5sum $VIMDIR/vimrc.local 6e5c97813cb7eb0400a1068c610cea00 && return
 	curl -fsSL $MYGITRAW/vimrc.local -o $VIMDIR/vimrc.local
 	curl -fsSL $MYGITRAW/vimrc.base -o $VIMDIR/vimrc.base
 	curl -fsSL $MYGITRAW/vimrc.idea -o $VIMDIR/vimrc.idea
@@ -763,6 +757,7 @@ update_system()
 	echo $TIME_NOW > $TIMESTAMP
 	[ -d $HOME/.oh-my-zsh ] && cd $HOME/.oh-my-zsh && git pull --rebase
 	vi +PlugUpgrade +qall
+	vi -c 'CocUpdateSync|q'
 	if $OSX; then
 		print_title "Updating brew..."
 		brew update --all && brew upgrade && brew cask update && \
@@ -784,7 +779,7 @@ install_homebrew()
 	fi
 
 	# Install homebrew apps
-	install_package yarn
+	install_package npm
 	install_package autojump
 	install_package ripgrep
 	install_package autojump
@@ -1253,7 +1248,12 @@ install_coc_extensions()
 	[ -d $HOME/.config/coc/extensions/node_modules/coc-snippets ] && return
 	mkdir -p $HOME/.config/coc/extensions
 	cd $HOME/.config/coc/extensions
-	yarn add coc-snippets
+	if [ ! -f package.json ]
+	then
+		echo '{"dependencies":{}}'> package.json
+	fi
+	npm install coc-snippets --global-style --ignore-scripts --no-bin-links \
+		--no-package-lock --only=prod
 	cd -
 }
 

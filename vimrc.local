@@ -42,7 +42,7 @@ Plug 'tpope/vim-surround'
 Plug 'vivien/vim-linux-coding-style'
 Plug 'w0rp/ale'
 Plug 'jez/vim-superman'
-Plug 'neoclide/coc.nvim', {'do': './install.sh nightly'}
+Plug 'neoclide/coc.nvim', {'branch': 'release'}
 " Plug 'leafgarland/typescript-vim'
 Plug 'ludovicchabant/vim-gutentags'
 call plug#end()	         " required
