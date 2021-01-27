@@ -148,12 +148,17 @@ install_deb_packages()
 	INSTALL_LIST+="build-essential astyle clang exfat-fuse exfat-utils xclip "
 	INSTALL_LIST+="cmake manpages-dev manpages-posix-dev fish curl valgrind "
 	INSTALL_LIST+="pv htop iftop tig lbzip2 asciinema automake bison flex "
-	INSTALL_LIST+="nodejs npm libclang-10-dev pkg-config bear "
+	INSTALL_LIST+="nodejs npm pkg-config bear "
 	$ENABLE_GUI && INSTALL_LIST+="fcitx goldendict vlc kcachegrind "
 	#$ENABLE_GUI && INSTALL_LIST+="arc-theme "
 	# Ubuntu 18.04 doesn't support below packages
 	if [ `lsb_release -sr | cut -d '.' -f 1` -gt 18 ]; then
 		INSTALL_LIST+="universal-ctags ripgrep "
+	fi
+	if [ `lsb_release -sr | cut -d '.' -f 1` -gt 19 ]; then
+		INSTALL_LIST+="libclang-11-dev "
+	else
+		INSTALL_LIST+="libclang-10-dev "
 	fi
 	local list=""
 	print_title "Check for install:"
@@ -218,7 +223,7 @@ install_vim()
 {
 	local VIMDIR=/usr/local/etc/vim
 	[ ! -d $VIMDIR ] && mkdir -p $VIMDIR
-	verify_md5sum $VIMDIR/vimrc.local 6e5c97813cb7eb0400a1068c610cea00 && return
+	verify_md5sum $VIMDIR/vimrc.local bb1df5bdce3bda4d5cf2e13a3e0cf90a && return
 	curl -fsSL $MYGITRAW/vimrc.local -o $VIMDIR/vimrc.local
 	curl -fsSL $MYGITRAW/vimrc.base -o $VIMDIR/vimrc.base
 	curl -fsSL $MYGITRAW/vimrc.idea -o $VIMDIR/vimrc.idea
@@ -473,7 +478,7 @@ config_bcompare()
 install_bcompare()
 {
 	is_package_exist bcompare && return
-	local URL='http://www.scootersoftware.com/download.php?zz=dl4&platform=linux'
+	local URL='https://www.scootersoftware.com/download.php?zz=dl4&platform=linux'
 	local BCOMPARE_VERSION=`curl -s $URL | sed -n -e 's/^.*\/bcompare-\(.*\)_amd64.deb.*/\1/p'`
 	install_package bcompare http://www.scootersoftware.com \
 		bcompare-${BCOMPARE_VERSION}_amd64.deb && return
@@ -570,18 +575,11 @@ update_sogou_config()
 install_sogou()
 {
 	is_package_exist sogoupinyin && return
-	local BASEURL=http://packages.deepin.com/deepin/pool/non-free/s/sogoupinyin/
-	local VERSION=(`curl -v $BASEURL 2>&1 | sed -n -e 's/.*>sogoupinyin\_\(.*\)\_amd64.deb<.*/\1/p'`)
-	[ -z $VERSION ] && return
-	VERSION=${VERSION[-1]}
-	local FILENAME="sogoupinyin_"$VERSION"_amd64.deb"
 
-	CURRENT_VERSION=`dpkg -l | grep sogoupinyin | awk '{print $3}'`
-	if [ "$CURRENT_VERSION" != "$VERSION" ] ; then
-		sudo apt-get remove -f -y sogoupinyin
-		install_package sogoupinyin $BASEURL $FILENAME && return
-		NEED_FORCE_UPDATE=true
-	fi
+	local BASEURL='https://ime.sogoucdn.com/dl/index/1608620566/'
+	local FILENAME="sogoupinyin_2.4.0.2942_amd64.deb"
+
+	install_package sogoupinyin $BASEURL $FILENAME
 }
 
 remove_flow_control()
@@ -929,10 +927,10 @@ config_goldendict()
 	local OXFORD=Oxford_Advanced_Learner_English-Chinese_Dictionary-4th.bgl
 
 	[ ! -d $DICTDIR ] && sudo mkdir -p $DICTDIR
-	if [ ! -f $DICTDIR/En-En-Longman_DOCE5_Extras.ann ]; then
-		local LINK="https://www.dropbox.com/s/0afwwsrrphbnpd3/longman.txz?dl=0"
-		wget -O- "$LINK" | sudo tar -xvJ -C $DICTDIR
-	fi
+	#if [ ! -f $DICTDIR/En-En-Longman_DOCE5_Extras.ann ]; then
+	#	local LINK="https://www.dropbox.com/s/0afwwsrrphbnpd3/longman.txz?dl=0"
+	#	wget -O- "$LINK" | sudo tar -xvJ -C $DICTDIR
+	#fi
 	local LINK="https://www.dropbox.com/sh/i2x1z3zwtw5dku8/AADgSAGfy90SQFx6ojchR1Gsa/Oxford_Advanced_Learner_English-Chinese_Dictionary-4th.bgl?dl=1"
 	[ ! -f $DICTDIR/$OXFORD ] && sudo wget "$LINK" -O $DICTDIR/$OXFORD
 
