@@ -144,21 +144,14 @@ uninstall_deb_packages()
 install_deb_packages()
 {
 	local INSTALL_LIST="sshfs ccache p7zip-full unifdef tmux python3-neovim "
-	INSTALL_LIST+="python3-dev cscope ranger "
-	INSTALL_LIST+="build-essential astyle clang exfat-fuse exfat-utils xclip "
-	INSTALL_LIST+="cmake manpages-dev manpages-posix-dev fish curl valgrind "
-	INSTALL_LIST+="pv htop iftop tig lbzip2 asciinema automake bison flex "
-	INSTALL_LIST+="nodejs npm pkg-config bear "
+	INSTALL_LIST+="python3-dev ranger build-essential astyle xclip "
+	INSTALL_LIST+="cmake manpages-dev manpages-posix-dev valgrind "
+	INSTALL_LIST+="fish curl pv htop iftop tig lbzip2 bear npm "
 	$ENABLE_GUI && INSTALL_LIST+="fcitx goldendict vlc kcachegrind "
 	#$ENABLE_GUI && INSTALL_LIST+="arc-theme "
 	# Ubuntu 18.04 doesn't support below packages
 	if [ `lsb_release -sr | cut -d '.' -f 1` -gt 18 ]; then
 		INSTALL_LIST+="universal-ctags ripgrep "
-	fi
-	if [ `lsb_release -sr | cut -d '.' -f 1` -gt 19 ]; then
-		INSTALL_LIST+="libclang-11-dev "
-	else
-		INSTALL_LIST+="libclang-10-dev "
 	fi
 	local list=""
 	print_title "Check for install:"
@@ -235,7 +228,7 @@ install_vim()
 {
 	local VIMDIR=/usr/local/etc/vim
 	[ ! -d $VIMDIR ] && mkdir -p $VIMDIR
-	verify_md5sum $VIMDIR/vimrc.local bb1df5bdce3bda4d5cf2e13a3e0cf90a && return
+	verify_md5sum $VIMDIR/vimrc.local e49643bf2fdfd660632abb394232bd6a && return
 	curl -fsSL $MYGITRAW/vimrc.local -o $VIMDIR/vimrc.local
 	curl -fsSL $MYGITRAW/vimrc.base -o $VIMDIR/vimrc.base
 	curl -fsSL $MYGITRAW/vimrc.idea -o $VIMDIR/vimrc.idea
@@ -366,6 +359,7 @@ config_git()
 	git config --global mergetool.prompt false
 	git config --global mergetool.keepBackup false
 	git config --global difftool.prompt false
+	git config --global core.editor nvim
 	if ! in_cfg $HOME/.gitconfig bc3; then
 		git config --global diff.tool bc3
 		git config --global merge.tool bc3
@@ -622,6 +616,7 @@ config_bash()
 	remove_flow_control $CFG_FILE
 	! in_cfg $CFG_FILE jgrep && add_jgrep_cgrep $CFG_FILE
 	! in_cfg $CFG_FILE nvim && echo -e 'alias vi="nvim"' >> $CFG_FILE
+	! in_cfg $CFG_FILE vimdiff && echo -e 'alias vimdiff="nvim -d"' >> $CFG_FILE
 	source_autojump bash
 }
 
@@ -720,7 +715,7 @@ config_fish()
 		[ ! -d $FISHCFGDIR ] && chsh -s /usr/bin/fish
 	fi
 	[ ! -d $FISHCFGDIR ] && mkdir -p $FISHCFGDIR
-	verify_md5sum $FISHCFGDIR/config.fish bde021dfbd17c9130c137e16bc394385 && return
+	verify_md5sum $FISHCFGDIR/config.fish 3f7359fa2c13e95e20d4351ddb5119ea && return
 	curl -fsSL $MYGITRAW/config.fish -o $FISHCFGDIR/config.fish
 	$WSL && cat <<- EOT >> $FISHCFGDIR/config.fish
 set -x DISPLAY (grep -m 1 nameserver /etc/resolv.conf | awk '{print \$2}'):0
@@ -753,6 +748,10 @@ update_nvim()
 	cp -frpP /tmp/$NAME/* /usr/local/
 	rm -fr /tmp/$NAME
 	rm /tmp/$FILE
+	local LOC=/usr/local/bin/nvim
+	if [ "$(update-alternatives --query editor | sed -ne 's/^Value: \(.*\)/\1/p')" != $LOC ]; then
+		sudo update-alternatives --install /usr/bin/editor editor $LOC 210
+	fi
 }
 
 update_system()
@@ -762,12 +761,10 @@ update_system()
 	local TIMESTAMP=$HOME/.last_update
 	[ -f $TIMESTAMP ] && LAST_UPDATE=$(cat $TIMESTAMP)
 
-	SHELL=/bin/bash /usr/local/bin/nvim +PlugUpdate +PlugUpgrade +qall
+	/usr/local/bin/nvim +PlugUpdate +PlugUpgrade +qall
 	[ $TIME_NOW -lt $(($LAST_UPDATE+28800)) ] && return
 	echo $TIME_NOW > $TIMESTAMP
 	[ -d $HOME/.oh-my-zsh ] && cd $HOME/.oh-my-zsh && git pull --rebase
-	vi +PlugUpgrade +qall
-	vi -c 'CocUpdateSync|q'
 	if $OSX; then
 		print_title "Updating brew..."
 		brew update --all && brew upgrade && brew cask update && \
@@ -789,10 +786,8 @@ install_homebrew()
 	fi
 
 	# Install homebrew apps
-	install_package npm
 	install_package autojump
 	install_package ripgrep
-	install_package autojump
 	install_package cmake
 	install_package ccache
 	install_package git --with-pcre --with-brewed-curl --with-brewed-openssl
@@ -850,28 +845,6 @@ disable_dashboard()
 	if [[ $(defaults read $DOMAIN_KEY) -ne 1 ]]; then
 		defaults write $DOMAIN_KEY -boolean YES && killall Dock
 	fi
-}
-
-add_italic_support()
-{
-	cd $HOME
-	local TERMFILE=xterm-256color.terminfo
-	cat << EOT > $TERMFILE
-xterm-256color|xterm with 256 colors and italic,
-	ritm=\E[23m, sitm=\E[3m,
-	use=xterm-256color,
-EOT
-	tic $TERMFILE
-	rm $TERMFILE
-
-	TERMFILE=screen-256color.terminfo
-	cat << EOT > $TERMFILE
-screen-256color|screen with 256 colors and italic,
-	ritm=\E[23m, sitm=\E[3m,
-	use=screen-256color,
-EOT
-	tic $TERMFILE
-	rm $TERMFILE
 }
 
 setup_byobu()
@@ -1179,55 +1152,6 @@ is_remote_changed()
 	return 1
 }
 
-install_tmux()
-{
-	local PATCH=0001-enable-italic-support-for-screen.patch
-	local SRCDIR=$HOME/archive/tmux
-	[ ! -d $SRCDIR ] && git clone --depth=1 \
-		https://github.com/tmux/tmux $SRCDIR
-	cd $SRCDIR
-	if [ -f configure ]; then
-		git reset --hard origin/master > /dev/null
-		! is_remote_changed && return 0
-		git reset --hard origin/master
-	fi
-	[ ! -f $PATCH ] && curl -fsSL "$MYGITRAW/patches/$PATCH" -o $PATCH
-	git am $PATCH
-	./autogen.sh
-	./configure --prefix=/usr/local
-	make -j$JOBCNT
-	make install
-	cd -
-}
-
-install_ccls()
-{
-	local SRCDIR=$HOME/archive/ccls
-	[ ! -d $SRCDIR ] && git clone --depth=1 \
-		https://github.com/MaskRay/ccls $SRCDIR
-	cd $SRCDIR
-	if [ -d Release ]; then
-		! is_remote_changed && return 0
-	fi
-	git fetch && git reset --hard origin/master && git submodule update --init
-	if [ `lsb_release -sr | cut -d '.' -f 1` -gt 18 ]; then
-		cmake -H. -BRelease -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/usr/local/bin
-	else
-		local LLVM=$HOME/archive/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04
-		if [ ! -d $LLVM ]; then
-			curl -fsSL https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz -o $HOME/archive/clang.txz
-			cd $HOME/archive
-			tar -xf clang.txz
-			rm clang.txz
-			cd -
-		fi
-		cmake -H. -BRelease -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=$LLVM
-	fi
-	cmake --build Release -- -j $JOBCNT
-	cp $SRCDIR/Release/ccls /usr/local/bin/
-	cd -
-}
-
 update_googltest()
 {
 	local SRCDIR=$HOME/archive/benchmark/googletest
@@ -1260,20 +1184,6 @@ install_gbench()
 	cmake --build "build" --config Release --target install
 }
 
-install_coc_extensions()
-{
-	[ -d $HOME/.config/coc/extensions/node_modules/coc-snippets ] && return
-	mkdir -p $HOME/.config/coc/extensions
-	cd $HOME/.config/coc/extensions
-	if [ ! -f package.json ]
-	then
-		echo '{"dependencies":{}}'> package.json
-	fi
-	npm install coc-snippets --global-style --ignore-scripts --no-bin-links \
-		--no-package-lock --only=prod
-	cd -
-}
-
 common_bootstrap()
 {
 	config_git
@@ -1284,11 +1194,7 @@ common_bootstrap()
 	add_local_bins
 	setup_lbzip2
 	setup_tig
-	# add_italic_support
-	# install_tmux
-	install_ccls
 	install_gbench
-	install_coc_extensions
 	install_vim
 	install_phonetic_plain_font
 	install_power_line_fonts

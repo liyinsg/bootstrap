@@ -1,6 +1,6 @@
 " non-plugin stuffs
+set hidden
 set shortmess+=c
-set signcolumn=yes
 set ruler cursorline colorcolumn=80
 set termguicolors
 syntax enable
@@ -49,3 +49,17 @@ nnoremap <silent> <leader>cf :let @+ = expand("%:t")<CR>
 nnoremap <silent> <leader>q :bp <BAR> bd #<CR>
 nnoremap <silent> <leader>n :enew<CR>
 nnoremap <silent> ZA :qa!<CR>
+
+if has("nvim-0.5.0") || has("patch-8.1.1564")
+  set signcolumn=number
+else
+  set signcolumn=yes
+endif
+
+let g:python3_host_prog='/usr/bin/python3'
+
+" Use Silver Searcher
+if executable('rg')
+  " Use rg over grep
+  set grepprg=rg\ --vimgrep\ --no-heading\ --smart-case
+endif

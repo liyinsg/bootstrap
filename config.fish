@@ -1,4 +1,4 @@
-set -x EDITOR vi
+set -x EDITOR nvim
 set -x MENUCONFIG_COLOR classic
 set -x LESS "-FRXS"
 set -x XZ_DEFAULTS "--threads=0"
@@ -8,6 +8,7 @@ else
   set -x fzf /usr/local/etc/vim/plugged/fzf/bin/fzf
 end
 alias vi nvim
+alias vimdiff "nvim -d"
 set -gx FZF_DEFAULT_COMMAND  'rg --files --hidden --no-messages'
 
 function __fasd_run -e fish_preexec -d "fasd takes record of the directories changed into"
