@@ -19,15 +19,14 @@ Plug 'morhetz/gruvbox'
 Plug 'bling/vim-airline'
 Plug 'airblade/vim-gitgutter'
 Plug 'airblade/vim-rooter'
-Plug 'honza/vim-snippets'
-Plug 'SirVer/ultisnips'
 Plug 'terryma/vim-multiple-cursors'
 Plug 'junegunn/fzf', {'do': './install --bin --all'}
 Plug 'junegunn/fzf.vim'
 Plug 'jez/vim-superman'
 Plug 'neovim/nvim-lspconfig'
-Plug 'williamboman/nvim-lspinstall'
-Plug 'nvim-lua/completion-nvim'
+Plug 'williamboman/nvim-lsp-installer'
+Plug 'ms-jpq/coq_nvim', {'branch': 'coq'}
+Plug 'ms-jpq/coq.artifacts', {'branch': 'artifacts'}
 call plug#end()	         " required
 filetype plugin indent on	 " required
 
@@ -39,8 +38,8 @@ let g:gruvbox_contrast_dark='hard'
 if &term =~ '256color' || &term == 'nvim'
   let g:gruvbox_italic=1
 endif
-colorscheme gruvbox
 set guifont=Fantasque\ Sans\ Mono\ 15
+colorscheme gruvbox
 
 " airline
 set hidden
@@ -74,11 +73,6 @@ nmap <leader>6 <Plug>AirlineSelectTab6
 nmap <leader>7 <Plug>AirlineSelectTab7
 nmap <leader>8 <Plug>AirlineSelectTab8
 nmap <leader>9 <Plug>AirlineSelectTab9
-
-" Ultisnips
-let g:UltiSnipsExpandTrigger="<c-j>"
-let g:UltiSnipsJumpForwardTrigger="<c-j>"
-let g:UltiSnipsJumpBackwardTrigger="<c-k>"
 
 " TMUX
 if exists('$TMUX') && !exists('$NORENAME')
@@ -117,14 +111,6 @@ endfunction
 nmap <silent> <leader>l :call ToggleList("Location List", 'l')<CR>
 nmap <silent> <leader>e :call ToggleList("Quickfix List", 'c')<CR>
 
-" completion
-inoremap <expr> <Tab>   pumvisible() ? "\<C-n>" : "\<Tab>"
-inoremap <expr> <S-Tab> pumvisible() ? "\<C-p>" : "\<S-Tab>"
-set completeopt=menuone,noinsert,noselect
-let g:completion_enable_snippet = 'UltiSnips'
-autocmd BufEnter * lua require'completion'.on_attach()
-
-" fzf
 function! RipgrepFzf(query, fullscreen)
   let command_fmt = 'rg --column --line-number --no-heading --color=always --smart-case -- %s || true'
   let initial_command = printf(command_fmt, shellescape(a:query))
@@ -145,6 +131,9 @@ nnoremap <silent> gH :History:<CR>
 nnoremap <silent> ml :Marks<CR>
 nnoremap <silent> gz :Helptags<CR>
 nnoremap <silent> gZ :Filetypes<CR>
+
+inoremap <silent> <C-h> <Esc><Cmd>lua COQnav_mark()<CR>
+vnoremap <silent> <C-h> <Esc><Cmd>lua COQnav_mark()<CR>
 
 " nvim-lsp
 lua << EOF
@@ -169,6 +158,7 @@ local on_attach = function(client, bufnr)
     buf_set_keymap("n", "g=", "<cmd>lua vim.lsp.buf.range_formatting()<CR>", opts)
   end
 end
+
 local function make_config()
   local capabilities = vim.lsp.protocol.make_client_capabilities()
   capabilities.textDocument.completion.completionItem.snippetSupport = true
@@ -179,13 +169,28 @@ local function make_config()
     on_attach = on_attach,
   }
 end
-require'lspinstall'.setup() -- important
-local servers = require'lspinstall'.installed_servers()
-for _, lsp in pairs(servers) do
-  local config = make_config()
-  nvim_lsp[lsp].setup(config)
-end
+
+vim.g.coq_settings = {
+    auto_start = true,
+    keymap = {
+        bigger_preview = "",
+    },
+    clients = {
+        tmux = {
+            match_syms = true,
+        },
+        tabnine = {
+            enabled = true,
+        }
+    }
+  }
+local lsp_installer = require("nvim-lsp-installer")
+local coq = require("coq")
+lsp_installer.on_server_ready(function(server)
+    server:setup(coq.lsp_ensure_capabilities(make_config()))
+end)
 EOF
+
+ino <silent><expr> <C-j>   pumvisible() ? "\<C-n>" : "\<C-j>"
+
 nnoremap <silent> <S-Tab> :ClangdSwitchSourceHeader<CR>
-"set updatetime=500
-"autocmd CursorHold * lua vim.lsp.buf.hover()
