@@ -422,7 +422,7 @@ export_android_home()
 
 setup_android_sdk()
 {
-	! which java && return
+	! which java > /dev/null && return
 	local CFG_FILE=$HOME/.profile
 	local ASDK=/usr/local/opt/android-sdk
 	if $OSX; then
@@ -430,7 +430,7 @@ setup_android_sdk()
 	else
 		[ ! -d $ASDK ] && mkdir -p $ASDK
 		[ ! -d $ASDK/tools ] && \
-			curl -fsSL https://dl.google.com/android/repository/sdk-tools-linux-3859397.zip -o sdk-tools.zip \
+			curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-7583922_latest.zip -o sdk-tools.zip \
 			&& unzip sdk-tools.zip -d $ASDK && rm sdk-tools.zip
 		[ ! -d $ASDK/platform-tools ] && echo y | $ASDK/tools/bin/sdkmanager --licenses
 		echo y | $ASDK/tools/bin/sdkmanager --update
@@ -1146,9 +1146,10 @@ osx_bootstrap()
 
 is_remote_changed()
 {
+	local BRANCH=$1
 	git fetch origin
-	DIFFS=`git rev-list HEAD...origin/master --count`
-	[ $DIFFS -ne 0 ] && return 0
+	local DIFFS=`git rev-list HEAD...origin/${BRANCH} --count`
+	[ "$DIFFS" -ne 0 ] && return 0
 	return 1
 }
 
@@ -1158,7 +1159,7 @@ update_googltest()
 	[ ! -d $SRCDIR ] && git clone https://github.com/google/googletest.git benchmark/googletest
 	cd $SRCDIR
 	if [ -d build ]; then
-		! is_remote_changed && return 0
+		! is_remote_changed main && return 0
 	fi
 	git pull
 	cmake -E make_directory "build"
@@ -1175,7 +1176,7 @@ install_gbench()
 	update_googltest
 	cd $SRCDIR
 	if [ -d build ]; then
-		! is_remote_changed && return 0
+		! is_remote_changed main && return 0
 	fi
 	git pull
 	cmake -E make_directory "build"
@@ -1221,7 +1222,7 @@ common_bootstrap()
 	config_ranger
 	config_bcompare
 	! $ENABLE_GUI && return
-	setup_android_sdk
+	# setup_android_sdk
 	vlc_subtitle
 }
 
