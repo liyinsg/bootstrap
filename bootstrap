@@ -582,8 +582,10 @@ install_sogou()
 {
 	is_package_exist sogoupinyin && return
 
-	local BASEURL='https://ime.sogoucdn.com/dl/index/1608620566/'
-	local FILENAME="sogoupinyin_2.4.0.2942_amd64.deb"
+	# depends on libgsettings-qt1
+	! is_package_exist libgsettings-qt1 && sudo apt install libgsettings-qt1
+	local BASEURL='https://ime.sogouimecdn.com/202203191137/2535a9307bf1d14ce3db30effa45a165/dl/gzindex/1646897940/'
+	local FILENAME="sogoupinyin_4.0.0.1605_amd64.deb"
 
 	install_package sogoupinyin $BASEURL $FILENAME
 }
@@ -1118,7 +1120,6 @@ ubuntu_bootstrap()
 	config_goldendict
 	install_sogou
 	$NEED_FORCE_UPDATE && sudo apt-get -f -y install
-	update_sogou_config
 
 	local VER=1
 	[ "`dconf read /system/version`" == $VER ] && return
