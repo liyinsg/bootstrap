@@ -2,6 +2,7 @@ set -x EDITOR nvim
 set -x MENUCONFIG_COLOR classic
 set -x LESS "-FRXS"
 set -x XZ_DEFAULTS "--threads=0"
+set -x JAVA_HOME /usr/lib/jvm/default-java
 if set -q TMUX
   set -x fzf /usr/local/etc/vim/plugged/fzf/bin/fzf-tmux -d40%
 else
