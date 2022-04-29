@@ -143,7 +143,7 @@ uninstall_deb_packages()
 
 install_deb_packages()
 {
-	local INSTALL_LIST="sshfs ccache p7zip-full unifdef tmux python3-neovim "
+	local INSTALL_LIST="sshfs ccache p7zip-full unifdef tmux "
 	INSTALL_LIST+="python3-dev ranger build-essential astyle xclip "
 	INSTALL_LIST+="cmake manpages-dev manpages-posix-dev valgrind "
 	INSTALL_LIST+="fish curl pv htop iftop tig lbzip2 bear npm "
@@ -279,13 +279,13 @@ generate_ssh_key()
 	fi
 	if [ ! -f $HOME/.ssh/id_rsa ]; then
 		cd $HOME/.ssh
-		ssh-keygen -t rsa -b 4096 -C "$USER_MAIL" -N "" -f $HOME/.ssh/id_rsa
+		ssh-keygen -t ed25519 -b 4096 -C "$USER_MAIL" -N "" -f $HOME/.ssh/id_ed25519
 		cd -
 	fi
 	if [ ! -d $HOME/.ssh/github ]; then
 		mkdir $HOME/.ssh/github
 		cd $HOME/.ssh/github
-		ssh-keygen -t rsa -b 4096 -C "$USER_MAIL" -N "" -f $HOME/.ssh/github/id_rsa
+		ssh-keygen -t ed25519 -b 4096 -C "$USER_MAIL" -N "" -f $HOME/.ssh/github/id_ed25519
 		cd -
 	fi
 	local CFG_FILE=$HOME/.ssh/config
@@ -531,14 +531,14 @@ add_jgrep_cgrep()
 	function jgrep()
 	{
 		find . -name .repo -prune -o -name .git -prune -o -name out -prune -o \
-	-type f -name "*\.java" -print0 | xargs -0 ag "\$@"
+	-type f -name "*\.java" -print0 | xargs -0 rg "\$@"
 	}
 
 	function cgrep()
 	{
 		find . -name .repo -prune -o -name .git -prune -o -name out -prune -o \
 	-type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.h' \
-	-o -name '*.hpp' \) -print0 | xargs -0 ag "\$@"
+	-o -name '*.hpp' \) -print0 | xargs -0 rg "\$@"
 	}
 	EOT
 }
@@ -622,49 +622,6 @@ config_bash()
 	source_autojump bash
 }
 
-install_oh_my_zsh()
-{
-	local CFG_FILE=$1
-	local OMZ=$GITRAW/robbyrussell/oh-my-zsh/master/tools/install.sh
-	[ ! -d "$HOME/.oh-my-zsh" ] && sh -c "$(curl -fsSL $OMZ)"
-	local STR="s/(git)/(autojump command-not-found tmux)/g"
-	if $OSX; then
-		sed -i '' "${STR}" $CFG_FILE
-	else
-		sed -i "${STR}" $CFG_FILE
-	fi
-}
-
-install_zsh()
-{
-	# Bash shares history across multiple terminals
-	local ZSHPATH="/usr/local/bin/zsh"
-	if $OSX; then
-		[ ! -x $ZSHPATH ] && install_package zsh
-		! in_cfg /etc/shells $ZSHPATH && echo $ZSHPATH | sudo tee -a /etc/shells
-		finger $USER | grep zsh &> /dev/null
-		[ $? -ne 0 ] && chsh -s /usr/local/bin/zsh
-	else
-		! is_package_exist zsh && sudo apt-get install zsh
-		chsh -s /usr/bin/zsh
-	fi
-	local CFG_FILE=$HOME/.zshrc
-
-	curl -fsSL $MYGITRAW/zshrc -o $HOME/.zshrc
-	if ! $OSX; then
-		echo "alias ls='ls --color=auto'" >> $HOME/.zshrc
-	fi
-	#install_oh_my_zsh $CFG_FILE
-	source_autojump zsh
-	! in_cfg $CFG_FILE jgrep && add_jgrep_cgrep $CFG_FILE
-	if $OSX; then
-		! in_cfg $CFG_FILE .profile && cat <<- EOT >> $CFG_FILE
-
-	[ -f $HOME/.profile ] && source $HOME/.profile
-	EOT
-	fi
-}
-
 install_fasd()
 {
 	local FASD_URL=$GITRAW/akatrevorjay/fasd/master
@@ -717,7 +674,7 @@ config_fish()
 		[ ! -d $FISHCFGDIR ] && chsh -s /usr/bin/fish
 	fi
 	[ ! -d $FISHCFGDIR ] && mkdir -p $FISHCFGDIR
-	verify_md5sum $FISHCFGDIR/config.fish 3f7359fa2c13e95e20d4351ddb5119ea && return
+	verify_md5sum $FISHCFGDIR/config.fish 780b0679b83d573f8dcfd6f04942ec0c && return
 	curl -fsSL $MYGITRAW/config.fish -o $FISHCFGDIR/config.fish
 	$WSL && cat <<- EOT >> $FISHCFGDIR/config.fish
 set -x DISPLAY (grep -m 1 nameserver /etc/resolv.conf | awk '{print \$2}'):0
@@ -1154,38 +1111,6 @@ is_remote_changed()
 	return 1
 }
 
-update_googltest()
-{
-	local SRCDIR=$HOME/archive/benchmark/googletest
-	[ ! -d $SRCDIR ] && git clone https://github.com/google/googletest.git benchmark/googletest
-	cd $SRCDIR
-	if [ -d build ]; then
-		! is_remote_changed main && return 0
-	fi
-	git pull
-	cmake -E make_directory "build"
-	cmake -E chdir "build" cmake -DCMAKE_BUILD_TYPE=Release ../
-	cmake --build "build" --config Release
-	cmake --build "build" --config Release --target install
-}
-
-install_gbench()
-{
-	local SRCDIR=$HOME/archive/benchmark
-	cd $HOME/archive
-	[ ! -d $SRCDIR ] && git clone https://github.com/google/benchmark.git
-	update_googltest
-	cd $SRCDIR
-	if [ -d build ]; then
-		! is_remote_changed main && return 0
-	fi
-	git pull
-	cmake -E make_directory "build"
-	cmake -E chdir "build" cmake -DCMAKE_BUILD_TYPE=Release ../
-	cmake --build "build" --config Release
-	cmake --build "build" --config Release --target install
-}
-
 common_bootstrap()
 {
 	config_git
@@ -1196,7 +1121,6 @@ common_bootstrap()
 	add_local_bins
 	setup_lbzip2
 	setup_tig
-	install_gbench
 	install_vim
 	install_phonetic_plain_font
 	install_power_line_fonts
