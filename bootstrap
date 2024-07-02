@@ -228,7 +228,7 @@ install_vim()
 {
 	local VIMDIR=/usr/local/etc/vim
 	[ ! -d $VIMDIR ] && mkdir -p $VIMDIR
-	verify_md5sum $VIMDIR/vimrc.local 2c396874e8c864916ba948ce023f7c09 && return
+	verify_md5sum $VIMDIR/vimrc.local 4b3c76df0d81fa1d6fa0476a36ff1d42 && return
 	curl -fsSL $MYGITRAW/vimrc.local -o $VIMDIR/vimrc.local
 	curl -fsSL $MYGITRAW/vimrc.base -o $VIMDIR/vimrc.base
 	curl -fsSL $MYGITRAW/vimrc.idea -o $VIMDIR/vimrc.idea
